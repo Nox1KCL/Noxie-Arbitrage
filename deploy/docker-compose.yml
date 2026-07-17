@@ -1,0 +1,72 @@
+services:
+    postgres-db:
+        image: postgres:17-alpine
+        container_name: postgre-nxe
+        environment:
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PWD}
+            POSTGRES_DB: ${DB_NAME}
+        ports:
+            - "${POSTGRE_PORT}:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql
+    rabbitmq:
+        image: rabbitmq:4-management-alpine
+        container_name: rabbitmq-nxe
+        environment:
+            RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+            RABBITMQ_DEFAULT_PASS: ${RABBIT_PWD}
+        ports:
+            - "${RABBIT_PORT}:5672"
+            - "${RABBIT_MGMT_PORT}:15672"
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+    core-go:
+        build:
+            context: ../
+            dockerfile: cmd/nxe-arbitrage/Dockerfile
+        container_name: core-go-nxe
+        environment:
+            - DB_USER=${DB_USER}
+            - DB_PWD=${DB_PWD}
+            - DB_NAME=${DB_NAME}
+            - DB_HOST=postgres-db
+            - DB_PORT=5432
+            - RABBIT_HOST=rabbitmq
+            - RABBIT_PORT=5672
+            - RABBIT_USER=${RABBIT_USER}
+            - RABBIT_PWD=${RABBIT_PWD}
+            - RABBIT_MP=15672
+        depends_on:
+            - postgres-db
+            - rabbitmq
+    bot-go:
+        build:
+            context: ../
+            dockerfile: cmd/nxe-bot/Dockerfile
+        container_name: bot-go-nxe
+        environment:
+            - DB_USER=${DB_USER}
+            - DB_PWD=${DB_PWD}
+            - DB_NAME=${DB_NAME}
+            - DB_HOST=postgres-db
+            - DB_PORT=5432
+        depends_on:
+            - postgres-db
+    parsers-py:
+        build:
+            context: ../parsers/
+            dockerfile: Dockerfile
+        container_name: parsers-py-nxe
+        environment:
+            - RABBIT_HOST=rabbitmq
+            - RABBIT_USER=${RABBIT_USER}
+            - RABBIT_PWD=${RABBIT_PWD}
+            - RABBIT_PORT=5672
+            - RABBIT_MP=15672
+        depends_on:
+            - rabbitmq
+
+volumes:
+    postgres_data:
+    rabbitmq_data:

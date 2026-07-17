@@ -1,30 +1,30 @@
-# Binaries
 /bin/
-/noxie-flux
-/noxie-flux.exe
-/nxe-flux
-/nxe-flux.exe
-/app
 
-# Editor / IDE configuration
 .vscode/
 .idea/
 .zed/
 .antigravitycli/
 
-# Local configuration
 internal/config/config.toml
+.env
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.poetry/
 
-# Logs
+__pycache__/
+*.py[cod]
+*$py.class
+
 *.log
 internal/logs/*.log
 !internal/logs/.gitkeep
 
-# OS specific files
 .DS_Store
 Thumbs.db
 
-# Go test and coverage files
 *.test
 *.out
 coverage.txt

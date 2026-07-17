@@ -1,0 +1,13 @@
+.env
+internal/config/config.toml
+
+deploy/
+
+.git
+.gitignore
+.idea/
+.zed/
+*.proto
+
+bin/
+dist/
