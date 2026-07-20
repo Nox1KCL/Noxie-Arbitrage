@@ -16,6 +16,7 @@ env/
 .poetry/
 
 __pycache__/
+*.egg-info/
 *.py[cod]
 *$py.class
 
