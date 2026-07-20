@@ -1,0 +1,16 @@
+[project]
+name = "parsers"
+version = "0.1.0"
+description = "Microservice for arbitrage"
+requires-python = ">=3.13"
+dependencies = [
+    "aio-pika",
+    "pydantic",
+    "python-dotenv>=1.2.2",
+]
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+parsers = { workspace = true }
