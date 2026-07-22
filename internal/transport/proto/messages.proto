@@ -1,0 +1,16 @@
+syntax = "proto3";
+package messages;
+option go_package = "github.com/Noxie-Arbitrage/internal/transport/";
+
+service DataService {
+    rpc SendUser(User) returns (Ack);
+}
+
+message User {
+    bytes user_data = 1;
+}
+
+message Ack {
+    bool status = 1;
+    string details = 2;
+}
