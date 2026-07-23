@@ -20,5 +20,5 @@ def setup_logger(cfg: LoggerConfig) -> None:
         compression=cfg.compression,
         serialize=cfg.json_format,
         encoding="utf-8",
-        enqueue=True,
+        enqueue=True, # Для асинхронності
     )
