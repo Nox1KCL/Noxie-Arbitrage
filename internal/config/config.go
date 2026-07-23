@@ -3,14 +3,11 @@ package config
 import (
 	"fmt"
 	"github.com/Nox1KCL/Arbitrage/internal/logger"
-	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
 )
-
-var clog = slog.With("module", "config")
 
 type Config struct {
     WorkersNum    int            `toml:"workers_num"`

@@ -14,7 +14,7 @@ import (
 var plog = slog.With("service", "processing")
 
 func main() {
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("delivery:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		plog.Error("Could not connect to client", "error", err)
 		return

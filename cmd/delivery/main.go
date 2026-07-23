@@ -27,7 +27,8 @@ func SendUser(ctx *context.Context, req *pb.User) (*pb.Ack, error) {
 func main() {
     listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
-		// Лог
+		dlog.Error("Could not listen on port 50051", "error", err)
+		return
 	}
 	grpcServer := grpc.NewServer()
 	pb.RegisterDataServiceServer(grpcServer, &server{})
