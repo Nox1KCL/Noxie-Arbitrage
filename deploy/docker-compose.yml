@@ -23,6 +23,16 @@ services:
         volumes:
             - rabbitmq_data:/var/lib/rabbitmq
 
+    delivery:
+        build:
+            context: ../
+            dockerfile: cmd/delivery/Dockerfile
+        container_name: delivery-nxe
+        depends_on:
+            - processing 
+        ports:
+            - "50051:50051"
+
     processing:
         build:
             context: ../
@@ -36,14 +46,7 @@ services:
             - DB_PORT=5432
         depends_on:
             - postgres-db
-
-    delivery:
-        build:
-            context: ../
-            dockerfile: cmd/delivery/Dockerfile
-        container_name: delivery-nxe
-        depends_on:
-            - processing
+            - delivery
 
     bot-go:
         build:
