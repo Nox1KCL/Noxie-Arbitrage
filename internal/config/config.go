@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github/Nox1KCL/Arbitrage/internal/logger"
+	"github.com/Nox1KCL/Arbitrage/internal/logger"
 	"log/slog"
 	"os"
 	"path/filepath"
