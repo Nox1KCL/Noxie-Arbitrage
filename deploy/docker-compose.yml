@@ -10,6 +10,7 @@ services:
             - "${POSTGRE_PORT}:5432"
         volumes:
             - postgres_data:/var/lib/postgresql
+
     rabbitmq:
         image: rabbitmq:4-management-alpine
         container_name: rabbitmq-nxe
@@ -21,10 +22,33 @@ services:
             - "${RABBIT_MGMT_PORT}:15672"
         volumes:
             - rabbitmq_data:/var/lib/rabbitmq
+
+    processing:
+        build:
+            context: ../
+            dockerfile: cmd/processing/Dockerfile
+        container_name: processing-nxe
+        environment:
+            - DB_USER=${DB_USER}
+            - DB_PWD=${DB_PWD}
+            - DB_NAME=${DB_NAME}
+            - DB_HOST=postgres-db
+            - DB_PORT=5432
+        depends_on:
+            - postgres-db
+
+    delivery:
+        build:
+            context: ../
+            dockerfile: cmd/delivery/Dockerfile
+        container_name: delivery-nxe
+        depends_on:
+            - processing
+
     bot-go:
         build:
             context: ../
-            dockerfile: cmd/nxe-bot/Dockerfile
+            dockerfile: cmd/bot/Dockerfile
         container_name: bot-go-nxe
         environment:
             - DB_USER=${DB_USER}
@@ -34,6 +58,7 @@ services:
             - DB_PORT=5432
         depends_on:
             - postgres-db
+
     parsers-py:
         build:
             context: ../parsers/
