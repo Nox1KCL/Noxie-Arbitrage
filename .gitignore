@@ -7,14 +7,15 @@ app
 .antigravitycli/
 
 internal/config/config.toml
+parsers/src/parsers/config/config.toml
 .env
 .venv/
 venv/
 ENV/
 env/
+
 .pytest_cache/
 .poetry/
-
 __pycache__/
 *.egg-info/
 *.py[cod]
