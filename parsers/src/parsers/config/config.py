@@ -8,7 +8,7 @@ else:
     import tomli as tomllib
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-LOGS_DIR = str("logs" / PROJECT_ROOT / "app.log")
+LOGS_DIR = str(PROJECT_ROOT / "logs" / "app.log")
 
 class ScraperConfig(BaseModel):
     workers_num: int
