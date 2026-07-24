@@ -3,7 +3,7 @@ import aio_pika
 from aio_pika.abc import AbstractChannel, AbstractQueue
 
 @dataclass
-class Broker():
+class Broker:
     connection: aio_pika.Connection | None = None
     channel: AbstractChannel | None = None
     queue_name: str = ""
