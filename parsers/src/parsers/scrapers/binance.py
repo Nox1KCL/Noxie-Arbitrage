@@ -1,12 +1,14 @@
-from typing import override
 import time
+from typing import override
 
-from parsers.utils import get_data
-from parsers.config.config import HttpConfig
-from parsers.scrapers.models import TickerForm
-from parsers.scrapers.base import BasicScraper
-from parsers.broker import Broker
 import httpx
+
+from parsers.broker import Broker
+from parsers.config.config import HttpConfig
+from parsers.scrapers.base import BasicScraper
+from parsers.scrapers.models import TickerForm
+from parsers.utils import get_data
+
 
 class BinanceScraper(BasicScraper):
     def __init__(self, client: httpx.AsyncClient, broker: Broker, api_url:str):

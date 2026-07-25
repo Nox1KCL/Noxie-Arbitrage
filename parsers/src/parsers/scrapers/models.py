@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class TickerForm(BaseModel):
     exchange_name: str = Field(alias="exchangeName")
     symbol: str

@@ -1,6 +1,10 @@
-from dotenv import load_dotenv
-import os, httpx, random, asyncio
+import asyncio
+import os
+import random
 from pathlib import Path
+
+import httpx
+from dotenv import load_dotenv
 from loguru import logger
 
 from parsers.config.config import HttpConfig

@@ -1,13 +1,11 @@
-from parsers.config.config import HttpConfig
-from parsers.utils import get_random_interval
+from abc import ABC, abstractmethod
 
-from parsers.scrapers.models import TickerForm
-from abc import ABC
 import httpx
-import asyncio
-from parsers.broker import Broker
-from abc import abstractmethod
 from loguru import logger
+
+from parsers.broker import Broker
+from parsers.config.config import HttpConfig
+from parsers.scrapers.models import TickerForm
 
 
 class BasicScraper(ABC):

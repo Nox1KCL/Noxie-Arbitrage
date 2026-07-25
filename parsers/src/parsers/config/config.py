@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+
 from pydantic import BaseModel, Field
 
 if sys.version_info >= (3, 11):

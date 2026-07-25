@@ -1,10 +1,14 @@
-from parsers.broker import Broker
-from parsers.scrapers.binance import BinanceScraper
-from parsers.utils import get_random_interval, get_url, get_env
-import httpx, asyncio
-from parsers.config.config import Config, HttpConfig
+import asyncio
+
+import httpx
 from loguru import logger
+
+from parsers.broker import Broker
+from parsers.config.config import Config, HttpConfig
 from parsers.logger.logger import setup_logger
+from parsers.scrapers.binance import BinanceScraper
+from parsers.utils import get_env, get_random_interval, get_url
+
 
 async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BinanceScraper, cfg: HttpConfig):
     logger.info(f"worker {worker_id} starting")

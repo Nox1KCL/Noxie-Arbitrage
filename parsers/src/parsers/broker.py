@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+
 import aio_pika
 from aio_pika.abc import AbstractChannel, AbstractQueue
+
 
 @dataclass
 class Broker:

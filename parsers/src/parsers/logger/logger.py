@@ -1,6 +1,9 @@
 import sys
+
 from loguru import logger
+
 from parsers.config import LoggerConfig
+
 
 def setup_logger(cfg: LoggerConfig) -> None:
     logger.remove()
