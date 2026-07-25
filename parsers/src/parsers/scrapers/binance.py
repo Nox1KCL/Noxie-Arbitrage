@@ -1,4 +1,5 @@
 from typing import override
+import time
 
 from parsers.scrapers.models import TickerForm
 from parsers.scrapers.base import BasicScraper
@@ -12,8 +13,21 @@ class BinanceScraper(BasicScraper):
     @override
     async def fetch_data(self, symbol: str) -> TickerForm:
         response = await self.client.get(self.api_url)
+
         if response.status_code != 200:
             # TODO: створити власний ексепшн
             raise Exception(f"Failed to fetch data: {response.status_code}")
-        data = response.json()
-        return TickerForm(**data)
+
+        raw_data = response.json()
+        try:
+            return TickerForm(
+                exchangeName="Binance",
+                symbol=raw_data["symbol"],
+                currentPrice=float(raw_data["lastPrice"]),
+                bestAsk=float(raw_data["askPrice"]),
+                bestBid=float(raw_data["bidPrice"]),
+                volume=float(raw_data["volume"]),
+                timestamp=int(time.time() * 1000),
+            )
+        except KeyError as e:
+            raise Exception(f"Missing key: {e}")
