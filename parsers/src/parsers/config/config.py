@@ -1,12 +1,7 @@
-import sys
+import tomllib
 from pathlib import Path
 
 from pydantic import BaseModel, Field
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 LOGS_DIR = str(PROJECT_ROOT / "logs" / "app.log")
