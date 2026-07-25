@@ -10,6 +10,7 @@ dependencies = [
     "loguru>=0.7.3",
     "pydantic",
     "python-dotenv>=1.2.2",
+    "ruff>=0.16.0",
 ]
 
 [tool.uv]
