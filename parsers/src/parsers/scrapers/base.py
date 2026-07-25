@@ -1,3 +1,6 @@
+from parsers.config.config import HttpConfig
+from parsers.utils import get_random_interval
+
 from parsers.scrapers.models import TickerForm
 from abc import ABC
 import httpx
@@ -19,17 +22,17 @@ class BasicScraper(ABC):
 
 
     @abstractmethod
-    async def fetch_data(self, symbol: str) -> TickerForm:
+    async def fetch_data(self, symbol: str, cfg: HttpConfig) -> TickerForm:
         pass
 
-    async def run(self, symbol: str, interval: int):
-        while True:
-            try:
-                data: TickerForm = await self.fetch_data(symbol)
-                binary_data: bytes = data.model_dump_json(by_alias=True).encode("utf-8")
-                await self.broker.load(binary_data)
+    async def process_single(self, symbol: str, cfg: HttpConfig):
+        try:
+            data: TickerForm = await self.fetch_data(symbol, cfg)
 
-            except Exception as e:
-                logger.exception(f"Fetching data from arbitrage {e}")
+            binary_data: bytes = data.model_dump_json(by_alias=True).encode("utf-8")
+            
+            logger.info(f"Send message to broker for symbol {symbol}")
+            await self.broker.load(binary_data)
 
-            await asyncio.sleep(interval)
+        except Exception as e:
+            logger.exception(f"Fetching data from arbitrage {e}")
