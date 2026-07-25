@@ -12,14 +12,14 @@ LOGS_DIR = str(PROJECT_ROOT / "logs" / "app.log")
 
 class ScraperConfig(BaseModel):
     workers_num: int
-    cycle_period_seconds: float
     user_agent: list[str]
 
 class HttpConfig(BaseModel):
     max_retries: int
-    timeout_seconds: float
-    min_delay_seconds: float = Field(default=0.5)
-    max_delay_seconds: float = Field(default=2)
+    timeout: float
+    interval: float
+    min_delay: float = Field(default=0.5)
+    max_delay: float = Field(default=2)
 
 class LoggerConfig(BaseModel):
     level: str = "INFO"
@@ -35,7 +35,9 @@ class Config(BaseModel):
     logger: LoggerConfig
 
     @classmethod
-    def load(cls, path: str | Path = "config.toml") -> "Config":
+    def load(cls, path: str | Path | None = None) -> "Config":
+        if path is None:
+             path = Path(__file__).parent / "config.toml"
         config_path = Path(path)
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
