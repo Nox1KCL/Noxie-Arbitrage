@@ -9,15 +9,21 @@ class Broker:
     queue_name: str = ""
 
     async def load(self, body: bytes):
-        assert self.channel is not None, "connect() first"
+        if self.channel is None:
+            raise RuntimeError("connect() first")
 
         _ = await self.channel.default_exchange.publish(
-            aio_pika.Message(body),
+            aio_pika.Message(
+                body,
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+            ),
             routing_key=self.queue_name,
         )
 
     async def unload(self) -> AbstractQueue | None:
-        assert self.channel is not None, "connect() first"
+        if self.channel is None:
+            raise RuntimeError("connect() first")
+
         try:
             return await self.channel.get_queue(
                 self.queue_name,
@@ -27,7 +33,8 @@ class Broker:
             return None
 
     async def make_queue(self, queue_name: str):
-        assert self.channel is not None, "connect() first"
+        if self.channel is None:
+            raise RuntimeError("connect() first")
 
         self.queue_name = queue_name
         _ = await self.channel.declare_queue(
