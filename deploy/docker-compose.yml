@@ -7,7 +7,7 @@ services:
             POSTGRES_PASSWORD: ${DB_PWD}
             POSTGRES_DB: ${DB_NAME}
         ports:
-            - "${POSTGRE_PORT}:5432"
+            - "${DB_PORT}:5432"
         volumes:
             - postgres_data:/var/lib/postgresql
 
@@ -19,7 +19,7 @@ services:
             RABBITMQ_DEFAULT_PASS: ${RABBIT_PWD}
         ports:
             - "${RABBIT_PORT}:5672"
-            - "${RABBIT_MGMT_PORT}:15672"
+            - "${RABBIT_MP}:15672"
         volumes:
             - rabbitmq_data:/var/lib/rabbitmq
 
@@ -28,8 +28,6 @@ services:
             context: ../
             dockerfile: cmd/delivery/Dockerfile
         container_name: delivery-nxe
-        depends_on:
-            - processing 
         ports:
             - "50051:50051"
 
