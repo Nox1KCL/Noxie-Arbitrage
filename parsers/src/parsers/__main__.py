@@ -1,6 +1,6 @@
 import asyncio
 
-import httpx
+import httpx, signal
 from loguru import logger
 
 from parsers.broker import Broker
@@ -12,15 +12,21 @@ from parsers.scrapers.bybit import BybitScraper
 from parsers.utils import get_env, get_random_interval, get_url
 
 
-async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BasicScraper, cfg: HttpConfig):
+async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BasicScraper, cfg: HttpConfig, stop_event: asyncio.Event):
     logger.info(f"worker {worker_id} starting")
-    while True:
-        symbol = await queue.get()
-        await scraper.process_single(symbol, cfg)
-        queue.task_done()
+    while not stop_event.is_set():
+        try:
+            symbol = await asyncio.wait_for(queue.get(), timeout=1.0)
+        except asyncio.TimeoutError:
+            continue
 
-async def dispatcher(symbols: list[str], queues: list[asyncio.Queue[str]], interval: float):
-    while True:
+        try:
+            await scraper.process_single(symbol, cfg)
+        finally:
+            queue.task_done()
+
+async def dispatcher(symbols: list[str], queues: list[asyncio.Queue[str]], interval: float, stop_event: asyncio.Event):
+    while not stop_event.is_set():
         logger.info("dispatching symbols")
         for s in symbols:
             for q in queues:
@@ -34,39 +40,54 @@ async def main():
     cfg = Config.load()
     setup_logger(cfg.logger)
 
+    stop_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, stop_event.set)
+        
+    logger.info("starting initialize broker")
     broker = Broker()
     await broker.connect(get_url())
     await broker.make_queue("parser.binance.ticker")
 
-    try:
-        ticker_list = ["BTCUSDT"]
-        binance_queue = asyncio.Queue[str]()
-        bybit_queue = asyncio.Queue[str]()
+    ticker_list = ["BTCUSDT"]
+    binance_queue = asyncio.Queue[str]()
+    bybit_queue = asyncio.Queue[str]()
 
-        async with httpx.AsyncClient() as client:
-            binance = BinanceScraper(
-                client=client,
-                broker=broker,
-                api_url="https://api.binance.com/api/v3/ticker/24hr?symbol="
-            )
-            bybit = BybitScraper(
-                client=client,
-                broker=broker,
-                api_url="https://api.bybit.com/v5/market/tickers?category=spot&symbol="
-            )
-            queues = [binance_queue, bybit_queue]
+    async with httpx.AsyncClient() as client:
+        binance = BinanceScraper(
+            client=client,
+            broker=broker,
+            api_url="https://api.binance.com/api/v3/ticker/24hr?symbol="
+        )
+        bybit = BybitScraper(
+            client=client,
+            broker=broker,
+            api_url="https://api.bybit.com/v5/market/tickers?category=spot&symbol="
+        )
+        queues = [binance_queue, bybit_queue]
+        batch_tasks: list[asyncio.Task[None]] = []
+        interval = get_random_interval(cfg.http.interval, cfg.http.min_delay, cfg.http.max_delay)
 
-            interval = get_random_interval(cfg.http.interval, cfg.http.min_delay, cfg.http.max_delay)
-            async with asyncio.TaskGroup() as tg:
-                _ = tg.create_task(dispatcher(ticker_list, queues, interval))
+        dispatcher_task = asyncio.create_task(dispatcher(ticker_list, queues, interval, stop_event))
 
-                for i in range(cfg.scraper.workers_num):
-                    _ = tg.create_task(worker(i, binance_queue, binance, cfg.http))
+        batch_tasks.append(dispatcher_task)
+        for i in range(cfg.scraper.workers_num):
+            task= asyncio.create_task(worker(i, binance_queue, binance, cfg.http, stop_event))
+            batch_tasks.append(task)
 
-                for i in range(cfg.scraper.workers_num):
-                    _ = tg.create_task(worker(i, bybit_queue, bybit, cfg.http))
-    finally:
+        for i in range(cfg.scraper.workers_num):
+            task = asyncio.create_task(worker(i, bybit_queue, bybit, cfg.http, stop_event))
+            batch_tasks.append(task)
+
+        _ = await stop_event.wait()
+
+        logger.warning("Starting gracefully shutdown..")
+        await asyncio.gather(*batch_tasks, return_exceptions=True)
         await broker.tidy()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
