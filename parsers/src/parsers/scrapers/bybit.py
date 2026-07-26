@@ -15,7 +15,7 @@ class BybitScraper(BasicScraper):
         target_url = f"{self.api_url}{symbol}"
         response = await get_data(target_url, self.client, cfg)
         raw_data = response.json()
-        prepared_data = raw_data["result"]["list"]
+        prepared_data = raw_data["result"]["list"][0]
 
         try:
             return TickerForm(
