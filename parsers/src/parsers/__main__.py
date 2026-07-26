@@ -6,22 +6,25 @@ from loguru import logger
 from parsers.broker import Broker
 from parsers.config.config import Config, HttpConfig
 from parsers.logger.logger import setup_logger
+from parsers.scrapers.base import BasicScraper
 from parsers.scrapers.binance import BinanceScraper
+from parsers.scrapers.bybit import BybitScraper
 from parsers.utils import get_env, get_random_interval, get_url
 
 
-async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BinanceScraper, cfg: HttpConfig):
+async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BasicScraper, cfg: HttpConfig):
     logger.info(f"worker {worker_id} starting")
     while True:
         symbol = await queue.get()
         await scraper.process_single(symbol, cfg)
         queue.task_done()
 
-async def dispatcher(symbols: list[str], queue: asyncio.Queue[str], interval: float):
+async def dispatcher(symbols: list[str], queues: list[asyncio.Queue[str]], interval: float):
     while True:
         logger.info("dispatching symbols")
         for s in symbols:
-            await queue.put(s)
+            for q in queues:
+                await q.put(s)
 
         await asyncio.sleep(interval)
 
@@ -37,7 +40,8 @@ async def main():
 
     try:
         ticker_list = ["BTCUSDT"]
-        queue = asyncio.Queue[str]()
+        binance_queue = asyncio.Queue[str]()
+        bybit_queue = asyncio.Queue[str]()
 
         async with httpx.AsyncClient() as client:
             binance = BinanceScraper(
@@ -45,12 +49,22 @@ async def main():
                 broker=broker,
                 api_url="https://api.binance.com/api/v3/ticker/24hr?symbol="
             )
+            bybit = BybitScraper(
+                client=client,
+                broker=broker,
+                api_url="https://api.bybit.com/v5/market/tickers?category=spot&symbol="
+            )
+            queues = [binance_queue, bybit_queue]
 
             interval = get_random_interval(cfg.http.interval, cfg.http.min_delay, cfg.http.max_delay)
             async with asyncio.TaskGroup() as tg:
-                _ = tg.create_task(dispatcher(ticker_list, queue, interval))
+                _ = tg.create_task(dispatcher(ticker_list, queues, interval))
+
                 for i in range(cfg.scraper.workers_num):
-                    _ = tg.create_task(worker(i, queue, binance, cfg.http))
+                    _ = tg.create_task(worker(i, binance_queue, binance, cfg.http))
+
+                for i in range(cfg.scraper.workers_num):
+                    _ = tg.create_task(worker(i, bybit_queue, bybit, cfg.http))
     finally:
         await broker.tidy()
 
