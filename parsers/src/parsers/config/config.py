@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 LOGS_DIR = str(PROJECT_ROOT / "logs" / "app.log")
 
 class ScraperConfig(BaseModel):

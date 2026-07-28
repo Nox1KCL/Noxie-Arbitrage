@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/Nox1KCL/Arbitrage/internal/syncutils"
 	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
 	"google.golang.org/grpc"
 )
@@ -15,7 +16,7 @@ type server struct {
     pb.UnimplementedDataServiceServer
 }
 
-func SendUser(ctx *context.Context, req *pb.User) (*pb.Ack, error) {
+func (s *server) SendUser(ctx context.Context, req *pb.User) (*pb.Ack, error) {
     // TODO: Функція яка буде обробляти дані юзера і відправляти вже у месенджер мб
 
     return &pb.Ack{
@@ -34,12 +35,12 @@ func main() {
 	pb.RegisterDataServiceServer(grpcServer, &server{})
 
 	dlog.Info("grpc server started successfully")
-	go func() {
-    	if err := grpcServer.Serve(listener); err != nil {
+
+	var serviceWg syncutils.MyWaitGroup
+	serviceWg.Go(func() {
+	    if err := grpcServer.Serve(listener); err != nil {
     	    dlog.Error("grpc server error", "error", err)
     	}
-	}()
-	go func() {
-
-	}()
+	})
+	serviceWg.Wait()
 }
