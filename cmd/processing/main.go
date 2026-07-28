@@ -3,18 +3,23 @@ package main
 import (
 	"context"
 	"log/slog"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/Nox1KCL/Arbitrage/internal/broker"
+	"github.com/Nox1KCL/Arbitrage/internal/processing"
+	"github.com/Nox1KCL/Arbitrage/internal/syncutils"
 	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
 )
 
 var plog = slog.With("service", "processing")
 
 func main() {
-	conn, err := grpc.NewClient("delivery:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("delivery-go:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		plog.Error("Could not connect to client", "error", err)
 		return

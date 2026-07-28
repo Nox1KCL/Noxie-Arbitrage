@@ -83,7 +83,7 @@ async def main():
         _ = await stop_event.wait()
 
         logger.warning("Starting gracefully shutdown..")
-        await asyncio.gather(*batch_tasks, return_exceptions=True)
+        _ = await asyncio.gather(*batch_tasks, return_exceptions=True)
         await broker.tidy()
 
 if __name__ == "__main__":
