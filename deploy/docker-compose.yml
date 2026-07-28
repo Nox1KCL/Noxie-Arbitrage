@@ -23,7 +23,7 @@ services:
         volumes:
             - rabbitmq_data:/var/lib/rabbitmq
 
-    delivery:
+    delivery-go:
         build:
             context: ../
             dockerfile: cmd/delivery/Dockerfile
@@ -31,7 +31,7 @@ services:
         ports:
             - "50051:50051"
 
-    processing:
+    processing-go:
         build:
             context: ../
             dockerfile: cmd/processing/Dockerfile
@@ -42,9 +42,15 @@ services:
             - DB_NAME=${DB_NAME}
             - DB_HOST=postgres-db
             - DB_PORT=5432
+            - RABBIT_HOST=rabbitmq
+            - RABBIT_USER=${RABBIT_USER}
+            - RABBIT_PWD=${RABBIT_PWD}
+            - RABBIT_PORT=5672
+            - RABBIT_MP=15672
         depends_on:
+            - rabbitmq
             - postgres-db
-            - delivery
+            - delivery-go
 
     bot-go:
         build:
