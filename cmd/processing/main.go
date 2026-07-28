@@ -28,21 +28,48 @@ func main() {
 
 	client := pb.NewDataServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// TODO: Реалізувати функцію для пакування юзера і т.п
-	// payload := []byte("... тут знаходиться ваш великий об'єм готових даних для користувача ...")
-	// req := &pb.User{
-	// 	UserData: payload,
-	// }
-
-	req := &pb.User{}
-	res, err := client.SendUser(ctx, req)
+	payload := make(chan []byte)
+	b, err := broker.NewBroker("parser.binance.ticker")
 	if err != nil {
-		plog.Error("Could not send user", "error", err)
+		plog.Error("Could not create broker", "error", err)
 		return
 	}
 
-	plog.Info("User sent successfully", "status", res.Status, "details", res.Details)
+	msgs, err := b.Unload()
+	if err != nil {
+		plog.Error("Could not unload broker", "error", err)
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	tickerChannel := make(chan processing.TickerForm)
+	var serviceWg syncutils.MyWaitGroup
+	serviceWg.Go(func() {
+        processing.Scanner(ctx, msgs, tickerChannel)
+	})
+
+	serviceWg.Go(func() {
+	    processing.Filter(ctx, tickerChannel, payload)
+	})
+
+	serviceWg.Go(func() {
+        processing.Sending(ctx, client, payload)
+	})
+
+	sig := <-sigChan
+	plog.Warn("Received signal", "signal", sig)
+
+	cancel()
+	serviceWg.Wait()
+
+	// 1) gathering як горутина +
+	// 2) filter як горутина +
+	// 3) forming це вже запускаємо у fiter
+	// 4) sender запускаємо коли з канала (який тут), приходить щось сюди
+	// 5) sender теж запускається в горутині, і якщо payload щось приходить, запускає SendUser
+
 }
