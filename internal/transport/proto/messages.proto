@@ -1,9 +1,13 @@
 syntax = "proto3";
 package messages;
+import "google/protobuf/empty.proto";
 option go_package = "github.com/Noxie-Arbitrage/internal/transport/";
 
 service DataService {
     rpc SendUser(User) returns (Ack);
+}
+service ProcessingService {
+    rpc ReloadSubscriptions(google.protobuf.Empty) returns (ReloadSubscriptionsResponse);
 }
 
 message User {
@@ -13,4 +17,8 @@ message User {
 message Ack {
     bool status = 1;
     string details = 2;
+}
+
+message ReloadSubscriptionsResponse {
+    bool status = 1;
 }

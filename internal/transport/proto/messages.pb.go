@@ -2,17 +2,17 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.2
-// source: messages.proto
+// source: internal/transport/proto/messages.proto
 
 package transport
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -31,7 +31,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_messages_proto_msgTypes[0]
+	mi := &file_internal_transport_proto_messages_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_messages_proto_msgTypes[0]
+	mi := &file_internal_transport_proto_messages_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_messages_proto_rawDescGZIP(), []int{0}
+	return file_internal_transport_proto_messages_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *User) GetUserData() []byte {
@@ -76,7 +76,7 @@ type Ack struct {
 
 func (x *Ack) Reset() {
 	*x = Ack{}
-	mi := &file_messages_proto_msgTypes[1]
+	mi := &file_internal_transport_proto_messages_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -88,7 +88,7 @@ func (x *Ack) String() string {
 func (*Ack) ProtoMessage() {}
 
 func (x *Ack) ProtoReflect() protoreflect.Message {
-	mi := &file_messages_proto_msgTypes[1]
+	mi := &file_internal_transport_proto_messages_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -101,7 +101,7 @@ func (x *Ack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ack.ProtoReflect.Descriptor instead.
 func (*Ack) Descriptor() ([]byte, []int) {
-	return file_messages_proto_rawDescGZIP(), []int{1}
+	return file_internal_transport_proto_messages_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Ack) GetStatus() bool {
@@ -118,66 +118,118 @@ func (x *Ack) GetDetails() string {
 	return ""
 }
 
-var File_messages_proto protoreflect.FileDescriptor
+type ReloadSubscriptionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        bool                   `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_messages_proto_rawDesc = "" +
+func (x *ReloadSubscriptionsResponse) Reset() {
+	*x = ReloadSubscriptionsResponse{}
+	mi := &file_internal_transport_proto_messages_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReloadSubscriptionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReloadSubscriptionsResponse) ProtoMessage() {}
+
+func (x *ReloadSubscriptionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_transport_proto_messages_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReloadSubscriptionsResponse.ProtoReflect.Descriptor instead.
+func (*ReloadSubscriptionsResponse) Descriptor() ([]byte, []int) {
+	return file_internal_transport_proto_messages_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ReloadSubscriptionsResponse) GetStatus() bool {
+	if x != nil {
+		return x.Status
+	}
+	return false
+}
+
+var File_internal_transport_proto_messages_proto protoreflect.FileDescriptor
+
+const file_internal_transport_proto_messages_proto_rawDesc = "" +
 	"\n" +
-	"\x0emessages.proto\x12\bmessages\"#\n" +
+	"'internal/transport/proto/messages.proto\x12\bmessages\x1a\x1bgoogle/protobuf/empty.proto\"#\n" +
 	"\x04User\x12\x1b\n" +
 	"\tuser_data\x18\x01 \x01(\fR\buserData\"7\n" +
 	"\x03Ack\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\bR\x06status\x12\x18\n" +
-	"\adetails\x18\x02 \x01(\tR\adetails28\n" +
+	"\adetails\x18\x02 \x01(\tR\adetails\"5\n" +
+	"\x1bReloadSubscriptionsResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\bR\x06status28\n" +
 	"\vDataService\x12)\n" +
-	"\bSendUser\x12\x0e.messages.User\x1a\r.messages.AckB0Z.github.com/Noxie-Arbitrage/internal/transport/b\x06proto3"
+	"\bSendUser\x12\x0e.messages.User\x1a\r.messages.Ack2i\n" +
+	"\x11ProcessingService\x12T\n" +
+	"\x13ReloadSubscriptions\x12\x16.google.protobuf.Empty\x1a%.messages.ReloadSubscriptionsResponseB0Z.github.com/Noxie-Arbitrage/internal/transport/b\x06proto3"
 
 var (
-	file_messages_proto_rawDescOnce sync.Once
-	file_messages_proto_rawDescData []byte
+	file_internal_transport_proto_messages_proto_rawDescOnce sync.Once
+	file_internal_transport_proto_messages_proto_rawDescData []byte
 )
 
-func file_messages_proto_rawDescGZIP() []byte {
-	file_messages_proto_rawDescOnce.Do(func() {
-		file_messages_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_messages_proto_rawDesc), len(file_messages_proto_rawDesc)))
+func file_internal_transport_proto_messages_proto_rawDescGZIP() []byte {
+	file_internal_transport_proto_messages_proto_rawDescOnce.Do(func() {
+		file_internal_transport_proto_messages_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_transport_proto_messages_proto_rawDesc), len(file_internal_transport_proto_messages_proto_rawDesc)))
 	})
-	return file_messages_proto_rawDescData
+	return file_internal_transport_proto_messages_proto_rawDescData
 }
 
-var file_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_messages_proto_goTypes = []any{
-	(*User)(nil), // 0: messages.User
-	(*Ack)(nil),  // 1: messages.Ack
+var file_internal_transport_proto_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_internal_transport_proto_messages_proto_goTypes = []any{
+	(*User)(nil),                        // 0: messages.User
+	(*Ack)(nil),                         // 1: messages.Ack
+	(*ReloadSubscriptionsResponse)(nil), // 2: messages.ReloadSubscriptionsResponse
+	(*emptypb.Empty)(nil),               // 3: google.protobuf.Empty
 }
-var file_messages_proto_depIdxs = []int32{
+var file_internal_transport_proto_messages_proto_depIdxs = []int32{
 	0, // 0: messages.DataService.SendUser:input_type -> messages.User
-	1, // 1: messages.DataService.SendUser:output_type -> messages.Ack
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	3, // 1: messages.ProcessingService.ReloadSubscriptions:input_type -> google.protobuf.Empty
+	1, // 2: messages.DataService.SendUser:output_type -> messages.Ack
+	2, // 3: messages.ProcessingService.ReloadSubscriptions:output_type -> messages.ReloadSubscriptionsResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_messages_proto_init() }
-func file_messages_proto_init() {
-	if File_messages_proto != nil {
+func init() { file_internal_transport_proto_messages_proto_init() }
+func file_internal_transport_proto_messages_proto_init() {
+	if File_internal_transport_proto_messages_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_messages_proto_rawDesc), len(file_messages_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_transport_proto_messages_proto_rawDesc), len(file_internal_transport_proto_messages_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
-		GoTypes:           file_messages_proto_goTypes,
-		DependencyIndexes: file_messages_proto_depIdxs,
-		MessageInfos:      file_messages_proto_msgTypes,
+		GoTypes:           file_internal_transport_proto_messages_proto_goTypes,
+		DependencyIndexes: file_internal_transport_proto_messages_proto_depIdxs,
+		MessageInfos:      file_internal_transport_proto_messages_proto_msgTypes,
 	}.Build()
-	File_messages_proto = out.File
-	file_messages_proto_goTypes = nil
-	file_messages_proto_depIdxs = nil
+	File_internal_transport_proto_messages_proto = out.File
+	file_internal_transport_proto_messages_proto_goTypes = nil
+	file_internal_transport_proto_messages_proto_depIdxs = nil
 }

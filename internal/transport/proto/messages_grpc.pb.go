@@ -2,16 +2,16 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.34.2
-// source: messages.proto
+// source: internal/transport/proto/messages.proto
 
 package transport
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -118,5 +118,107 @@ var DataService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "messages.proto",
+	Metadata: "internal/transport/proto/messages.proto",
+}
+
+const (
+	ProcessingService_ReloadSubscriptions_FullMethodName = "/messages.ProcessingService/ReloadSubscriptions"
+)
+
+// ProcessingServiceClient is the client API for ProcessingService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ProcessingServiceClient interface {
+	ReloadSubscriptions(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ReloadSubscriptionsResponse, error)
+}
+
+type processingServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewProcessingServiceClient(cc grpc.ClientConnInterface) ProcessingServiceClient {
+	return &processingServiceClient{cc}
+}
+
+func (c *processingServiceClient) ReloadSubscriptions(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ReloadSubscriptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReloadSubscriptionsResponse)
+	err := c.cc.Invoke(ctx, ProcessingService_ReloadSubscriptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ProcessingServiceServer is the server API for ProcessingService service.
+// All implementations must embed UnimplementedProcessingServiceServer
+// for forward compatibility.
+type ProcessingServiceServer interface {
+	ReloadSubscriptions(context.Context, *emptypb.Empty) (*ReloadSubscriptionsResponse, error)
+	mustEmbedUnimplementedProcessingServiceServer()
+}
+
+// UnimplementedProcessingServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedProcessingServiceServer struct{}
+
+func (UnimplementedProcessingServiceServer) ReloadSubscriptions(context.Context, *emptypb.Empty) (*ReloadSubscriptionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReloadSubscriptions not implemented")
+}
+func (UnimplementedProcessingServiceServer) mustEmbedUnimplementedProcessingServiceServer() {}
+func (UnimplementedProcessingServiceServer) testEmbeddedByValue()                           {}
+
+// UnsafeProcessingServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProcessingServiceServer will
+// result in compilation errors.
+type UnsafeProcessingServiceServer interface {
+	mustEmbedUnimplementedProcessingServiceServer()
+}
+
+func RegisterProcessingServiceServer(s grpc.ServiceRegistrar, srv ProcessingServiceServer) {
+	// If the following call panics, it indicates UnimplementedProcessingServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ProcessingService_ServiceDesc, srv)
+}
+
+func _ProcessingService_ReloadSubscriptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProcessingServiceServer).ReloadSubscriptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProcessingService_ReloadSubscriptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProcessingServiceServer).ReloadSubscriptions(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ProcessingService_ServiceDesc is the grpc.ServiceDesc for ProcessingService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ProcessingService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "messages.ProcessingService",
+	HandlerType: (*ProcessingServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ReloadSubscriptions",
+			Handler:    _ProcessingService_ReloadSubscriptions_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "internal/transport/proto/messages.proto",
 }
