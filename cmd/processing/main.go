@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/Nox1KCL/Arbitrage/internal/broker"
+	"github.com/Nox1KCL/Arbitrage/internal/database"
+	"github.com/Nox1KCL/Arbitrage/internal/database/models"
 	"github.com/Nox1KCL/Arbitrage/internal/processing"
 	"github.com/Nox1KCL/Arbitrage/internal/syncutils"
 	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
@@ -27,10 +29,20 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewDataServiceClient(conn)
-
+	
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
+	db, err := database.Connect()
+	if err != nil {
+	    plog.Error("Could not connect to db", "error", err)
+	    return
+	}
+	if err := db.AutoMigrate(&models.Subscription{}); err != nil {
+	    plog.Error("Could not create a table", "error", err)
+		return
+	}
+	
 	payload := make(chan []byte)
 	b, err := broker.NewBroker("parser.binance.ticker")
 	if err != nil {
