@@ -29,20 +29,20 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewDataServiceClient(conn)
-	
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	db, err := database.Connect()
 	if err != nil {
-	    plog.Error("Could not connect to db", "error", err)
-	    return
-	}
-	if err := db.AutoMigrate(&models.Subscription{}); err != nil {
-	    plog.Error("Could not create a table", "error", err)
+		plog.Error("Could not connect to db", "error", err)
 		return
 	}
-	
+	if err := db.AutoMigrate(&models.Subscription{}); err != nil {
+		plog.Error("Could not create a table", "error", err)
+		return
+	}
+
 	payload := make(chan []byte)
 	b, err := broker.NewBroker("parser.binance.ticker")
 	if err != nil {
@@ -61,15 +61,20 @@ func main() {
 	tickerChannel := make(chan processing.TickerForm)
 	var serviceWg syncutils.MyWaitGroup
 	serviceWg.Go(func() {
-        processing.Scanner(ctx, msgs, tickerChannel)
+		processing.Scanner(ctx, msgs, tickerChannel)
+	})
+
+	maps, err := database.LoadSubscriptions(db, []*models.Subscription{})
+	if err != nil {
+		plog.Error("Could not load subscriptions", "error", err)
+		os.Exit(0)
+	}
+	serviceWg.Go(func() {
+		processing.Filter(ctx, tickerChannel, payload, maps)
 	})
 
 	serviceWg.Go(func() {
-	    processing.Filter(ctx, tickerChannel, payload)
-	})
-
-	serviceWg.Go(func() {
-        processing.Sending(ctx, client, payload)
+		processing.Sending(ctx, client, payload)
 	})
 
 	sig := <-sigChan
@@ -77,11 +82,4 @@ func main() {
 
 	cancel()
 	serviceWg.Wait()
-
-	// 1) gathering як горутина +
-	// 2) filter як горутина +
-	// 3) forming це вже запускаємо у fiter
-	// 4) sender запускаємо коли з канала (який тут), приходить щось сюди
-	// 5) sender теж запускається в горутині, і якщо payload щось приходить, запускає SendUser
-
 }
