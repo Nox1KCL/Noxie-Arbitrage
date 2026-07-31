@@ -7,22 +7,27 @@ import (
 )
 
 type Aggregator struct {
-	Ticks map[string]map[string]*TickerForm // Symbol / Exchanges
-	Maps  *models.CachedMaps
+	Ticks      map[string]map[string]*TickerForm // Symbol / Exchanges
+	Maps       *models.CachedMaps
+	LastAlerts map[int64]map[string]float64
 }
 
 type Spread struct {
+	Symbol       string
 	BuyExchange  string
 	SellExchange string
 	BuyPrice     float64
 	SellPrice    float64
 	Spread       float64
+	FirstVolume  float64
+	SecondVolume float64
 }
 
 func NewAggregator(maps *models.CachedMaps) *Aggregator {
 	return &Aggregator{
-		Ticks: make(map[string]map[string]*TickerForm),
-		Maps:  maps,
+		Ticks:      make(map[string]map[string]*TickerForm),
+		Maps:       maps,
+		LastAlerts: make(map[int64]map[string]float64),
 	}
 }
 
@@ -83,12 +88,18 @@ func (agg *Aggregator) Arbitrage(symbol string) *Spread {
 		buyPrice := minAskTicker.BestAsk
 		sellPrice := maxBidTicker.BestBid
 		spread := ((sellPrice - buyPrice) / buyPrice) * 100
+		firstVolume := minAskTicker.Volume
+		secondVolume := maxBidTicker.Volume
+
 		return &Spread{
+			Symbol:       symbol,
 			BuyExchange:  minAskTicker.ExchangeName,
 			SellExchange: maxBidTicker.ExchangeName,
 			BuyPrice:     buyPrice,
 			SellPrice:    sellPrice,
 			Spread:       spread,
+			FirstVolume:  firstVolume,
+			SecondVolume: secondVolume,
 		}
 	}
 	return nil
