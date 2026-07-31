@@ -10,10 +10,10 @@ import (
 )
 
 type Config struct {
-    WorkersNum    int            `toml:"workers_num"`
-    AdminID       int            `toml:"admin_id"`
-    LogsDir       string         `toml:"logs_dir"`
-    Logger logger.LumberConfig   `toml:"logger"`
+	WorkersNum int                 `toml:"workers_num"`
+	AdminID    int                 `toml:"admin_id"`
+	LogsDir    string              `toml:"logs_dir"`
+	Logger     logger.LumberConfig `toml:"logger"`
 }
 
 func GetConfig(path string) (*Config, error) {
@@ -26,7 +26,7 @@ func GetConfig(path string) (*Config, error) {
 			return nil, fmt.Errorf("reading config file %q: %w", path, err)
 		}
 	} else {
-	    return nil, fmt.Errorf("no path provided or not absolute path")
+		return nil, fmt.Errorf("no path provided or not absolute path")
 	}
 
 	var cfg Config

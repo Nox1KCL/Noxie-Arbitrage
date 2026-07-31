@@ -13,20 +13,20 @@ import (
 var dlog = slog.With("service", "delivery")
 
 type server struct {
-    pb.UnimplementedDataServiceServer
+	pb.UnimplementedDataServiceServer
 }
 
 func (s *server) SendUser(ctx context.Context, req *pb.User) (*pb.Ack, error) {
-    // TODO: Функція яка буде обробляти дані юзера і відправляти вже у месенджер мб
+	// TODO: Функція яка буде обробляти дані юзера і відправляти вже у месенджер мб
 
-    return &pb.Ack{
-        Status:  true,
-        Details: "",
-    }, nil
+	return &pb.Ack{
+		Status:  true,
+		Details: "",
+	}, nil
 }
 
 func main() {
-    listener, err := net.Listen("tcp", ":50051")
+	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		dlog.Error("Could not listen on port 50051", "error", err)
 		return
@@ -38,9 +38,9 @@ func main() {
 
 	var serviceWg syncutils.MyWaitGroup
 	serviceWg.Go(func() {
-	    if err := grpcServer.Serve(listener); err != nil {
-    	    dlog.Error("grpc server error", "error", err)
-    	}
+		if err := grpcServer.Serve(listener); err != nil {
+			dlog.Error("grpc server error", "error", err)
+		}
 	})
 	serviceWg.Wait()
 }

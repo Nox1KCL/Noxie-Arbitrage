@@ -5,18 +5,18 @@ import (
 )
 
 func (b *Broker) Load(queueName, contentType string, data []byte) error {
-    err := b.channel.Publish(
-        "",
-        queueName,
-        false,
-        false,
-        amqp.Publishing{
-            ContentType: contentType,
-            Body:         data,
-        },
-    )
-    if err != nil {
-        return err
-    }
-    return nil
+	err := b.channel.Publish(
+		"",
+		queueName,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: contentType,
+			Body:        data,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }
