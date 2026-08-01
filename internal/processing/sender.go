@@ -5,26 +5,33 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/Nox1KCL/Arbitrage/internal/transport"
 	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
 )
 
 var selog = slog.With("service", "processing")
 
-func Sending(ctx context.Context, client pb.DataServiceClient, payload chan []byte) {
+func Sending(ctx context.Context, client pb.DataServiceClient, payload chan []*transport.FormedMessage) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case p := <-payload:
-			req := &pb.User{
-				UserData: p,
+		case msgs := <-payload:
+			for _, m := range msgs {
+				req := &pb.AlertNotification{
+					TelegramChatId: m.TelegramUserID,
+					Text:           m.Text,
+				}
+				res := gRPCsender(ctx, client, req)
+				if res != nil && !res.GetStatus() {
+					selog.Warn("Delivery rejected message", "details", res.GetDetails())
+				}
 			}
-			_ = gRPCsender(ctx, client, req)
 		}
 	}
 }
 
-func gRPCsender(ctx context.Context, client pb.DataServiceClient, req *pb.User) *pb.Ack {
+func gRPCsender(ctx context.Context, client pb.DataServiceClient, req *pb.AlertNotification) *pb.Ack {
 	callCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
