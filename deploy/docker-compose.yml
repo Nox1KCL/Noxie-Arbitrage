@@ -30,6 +30,8 @@ services:
         container_name: delivery-nxe
         ports:
             - "50051:50051"
+        environment:
+            - TELEGRAM_BOT_API=${TELEGRAM_BOT_API}
 
     processing-go:
         build:
