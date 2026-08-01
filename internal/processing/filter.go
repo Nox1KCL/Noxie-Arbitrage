@@ -2,9 +2,10 @@ package processing
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 
 	"github.com/Nox1KCL/Arbitrage/internal/database/models"
+	"github.com/Nox1KCL/Arbitrage/internal/transport"
 )
 
 type MatchResult struct {
@@ -13,7 +14,7 @@ type MatchResult struct {
 	Sub    models.Subscription
 }
 
-func Filter(ctx context.Context, channel <-chan TickerForm, payload chan<- []byte, maps *models.CachedMaps) {
+func Filter(ctx context.Context, channel <-chan TickerForm, payload chan<- []*transport.FormedMessage, maps *models.CachedMaps) {
 	aggregator := NewAggregator(maps)
 	for {
 		select {
@@ -32,12 +33,8 @@ func Filter(ctx context.Context, channel <-chan TickerForm, payload chan<- []byt
 			if len(matches) == 0 {
 				continue
 			}
-
-			bytesData, err := json.Marshal(&matches)
-			if err != nil {
-				return
-			}
-			payload <- bytesData
+			msgs := FormMessage(matches)
+			payload <- msgs
 		}
 	}
 }
@@ -70,4 +67,25 @@ func CheckAlert(agg *Aggregator, sub models.Subscription, spread *Spread) bool {
 	}
 	priceChange := (spread.Spread - lastAlert) / lastAlert * 100
 	return priceChange >= sub.MinPriceChangePercent
+}
+
+func FormMessage(matches []*MatchResult) []*transport.FormedMessage {
+	var msgs = []*transport.FormedMessage{}
+	for _, m := range matches {
+		s := m.Spread
+		id := m.UserID
+
+		text := fmt.Sprintf(
+			"Арбітраж %s\nКупити: %s @ %.4f\nПродати: %s @ %.4f\nСпред: %.4f%% | Обсяг: %.4f / %.4f",
+			s.Symbol,
+			s.BuyExchange, s.BuyPrice,
+			s.SellExchange, s.SellPrice,
+			s.Spread, s.FirstVolume, s.SecondVolume,
+		)
+		msgs = append(msgs, &transport.FormedMessage{
+			TelegramUserID: id,
+			Text:           text,
+		})
+	}
+	return msgs
 }
