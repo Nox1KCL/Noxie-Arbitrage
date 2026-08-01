@@ -15,6 +15,7 @@ import (
 	"github.com/Nox1KCL/Arbitrage/internal/database/models"
 	"github.com/Nox1KCL/Arbitrage/internal/processing"
 	"github.com/Nox1KCL/Arbitrage/internal/syncutils"
+	"github.com/Nox1KCL/Arbitrage/internal/transport"
 	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
 )
 
@@ -43,7 +44,6 @@ func main() {
 		return
 	}
 
-	payload := make(chan []byte)
 	b, err := broker.NewBroker("parser.binance.ticker")
 	if err != nil {
 		plog.Error("Could not create broker", "error", err)
@@ -64,6 +64,7 @@ func main() {
 		processing.Scanner(ctx, msgs, tickerChannel)
 	})
 
+	payload := make(chan []*transport.FormedMessage)
 	maps, err := database.LoadSubscriptions(db, []*models.Subscription{})
 	if err != nil {
 		plog.Error("Could not load subscriptions", "error", err)
