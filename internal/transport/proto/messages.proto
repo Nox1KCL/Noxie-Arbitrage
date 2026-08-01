@@ -4,14 +4,15 @@ import "google/protobuf/empty.proto";
 option go_package = "github.com/Noxie-Arbitrage/internal/transport/";
 
 service DataService {
-    rpc SendUser(User) returns (Ack);
+    rpc SendUser(AlertNotification) returns (Ack);
 }
 service ProcessingService {
     rpc ReloadSubscriptions(google.protobuf.Empty) returns (ReloadSubscriptionsResponse);
 }
 
-message User {
-    bytes user_data = 1;
+message AlertNotification {
+    int64 telegram_chat_id = 1;
+    string text = 2;
 }
 
 message Ack {

@@ -27,7 +27,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataServiceClient interface {
-	SendUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Ack, error)
+	SendUser(ctx context.Context, in *AlertNotification, opts ...grpc.CallOption) (*Ack, error)
 }
 
 type dataServiceClient struct {
@@ -38,7 +38,7 @@ func NewDataServiceClient(cc grpc.ClientConnInterface) DataServiceClient {
 	return &dataServiceClient{cc}
 }
 
-func (c *dataServiceClient) SendUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Ack, error) {
+func (c *dataServiceClient) SendUser(ctx context.Context, in *AlertNotification, opts ...grpc.CallOption) (*Ack, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Ack)
 	err := c.cc.Invoke(ctx, DataService_SendUser_FullMethodName, in, out, cOpts...)
@@ -52,7 +52,7 @@ func (c *dataServiceClient) SendUser(ctx context.Context, in *User, opts ...grpc
 // All implementations must embed UnimplementedDataServiceServer
 // for forward compatibility.
 type DataServiceServer interface {
-	SendUser(context.Context, *User) (*Ack, error)
+	SendUser(context.Context, *AlertNotification) (*Ack, error)
 	mustEmbedUnimplementedDataServiceServer()
 }
 
@@ -63,7 +63,7 @@ type DataServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDataServiceServer struct{}
 
-func (UnimplementedDataServiceServer) SendUser(context.Context, *User) (*Ack, error) {
+func (UnimplementedDataServiceServer) SendUser(context.Context, *AlertNotification) (*Ack, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendUser not implemented")
 }
 func (UnimplementedDataServiceServer) mustEmbedUnimplementedDataServiceServer() {}
@@ -88,7 +88,7 @@ func RegisterDataServiceServer(s grpc.ServiceRegistrar, srv DataServiceServer) {
 }
 
 func _DataService_SendUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(User)
+	in := new(AlertNotification)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func _DataService_SendUser_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: DataService_SendUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataServiceServer).SendUser(ctx, req.(*User))
+		return srv.(DataServiceServer).SendUser(ctx, req.(*AlertNotification))
 	}
 	return interceptor(ctx, in, info, handler)
 }

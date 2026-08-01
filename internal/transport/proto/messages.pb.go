@@ -22,27 +22,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type User struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserData      []byte                 `protobuf:"bytes,1,opt,name=user_data,json=userData,proto3" json:"user_data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+type AlertNotification struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TelegramChatId int64                  `protobuf:"varint,1,opt,name=telegram_chat_id,json=telegramChatId,proto3" json:"telegram_chat_id,omitempty"`
+	Text           string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
-func (x *User) Reset() {
-	*x = User{}
+func (x *AlertNotification) Reset() {
+	*x = AlertNotification{}
 	mi := &file_internal_transport_proto_messages_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *User) String() string {
+func (x *AlertNotification) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*User) ProtoMessage() {}
+func (*AlertNotification) ProtoMessage() {}
 
-func (x *User) ProtoReflect() protoreflect.Message {
+func (x *AlertNotification) ProtoReflect() protoreflect.Message {
 	mi := &file_internal_transport_proto_messages_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -54,16 +55,23 @@ func (x *User) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use User.ProtoReflect.Descriptor instead.
-func (*User) Descriptor() ([]byte, []int) {
+// Deprecated: Use AlertNotification.ProtoReflect.Descriptor instead.
+func (*AlertNotification) Descriptor() ([]byte, []int) {
 	return file_internal_transport_proto_messages_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *User) GetUserData() []byte {
+func (x *AlertNotification) GetTelegramChatId() int64 {
 	if x != nil {
-		return x.UserData
+		return x.TelegramChatId
 	}
-	return nil
+	return 0
+}
+
+func (x *AlertNotification) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
 }
 
 type Ack struct {
@@ -166,16 +174,17 @@ var File_internal_transport_proto_messages_proto protoreflect.FileDescriptor
 
 const file_internal_transport_proto_messages_proto_rawDesc = "" +
 	"\n" +
-	"'internal/transport/proto/messages.proto\x12\bmessages\x1a\x1bgoogle/protobuf/empty.proto\"#\n" +
-	"\x04User\x12\x1b\n" +
-	"\tuser_data\x18\x01 \x01(\fR\buserData\"7\n" +
+	"'internal/transport/proto/messages.proto\x12\bmessages\x1a\x1bgoogle/protobuf/empty.proto\"Q\n" +
+	"\x11AlertNotification\x12(\n" +
+	"\x10telegram_chat_id\x18\x01 \x01(\x03R\x0etelegramChatId\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\"7\n" +
 	"\x03Ack\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\bR\x06status\x12\x18\n" +
 	"\adetails\x18\x02 \x01(\tR\adetails\"5\n" +
 	"\x1bReloadSubscriptionsResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\bR\x06status28\n" +
-	"\vDataService\x12)\n" +
-	"\bSendUser\x12\x0e.messages.User\x1a\r.messages.Ack2i\n" +
+	"\x06status\x18\x01 \x01(\bR\x06status2E\n" +
+	"\vDataService\x126\n" +
+	"\bSendUser\x12\x1b.messages.AlertNotification\x1a\r.messages.Ack2i\n" +
 	"\x11ProcessingService\x12T\n" +
 	"\x13ReloadSubscriptions\x12\x16.google.protobuf.Empty\x1a%.messages.ReloadSubscriptionsResponseB0Z.github.com/Noxie-Arbitrage/internal/transport/b\x06proto3"
 
@@ -193,13 +202,13 @@ func file_internal_transport_proto_messages_proto_rawDescGZIP() []byte {
 
 var file_internal_transport_proto_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_internal_transport_proto_messages_proto_goTypes = []any{
-	(*User)(nil),                        // 0: messages.User
+	(*AlertNotification)(nil),           // 0: messages.AlertNotification
 	(*Ack)(nil),                         // 1: messages.Ack
 	(*ReloadSubscriptionsResponse)(nil), // 2: messages.ReloadSubscriptionsResponse
 	(*emptypb.Empty)(nil),               // 3: google.protobuf.Empty
 }
 var file_internal_transport_proto_messages_proto_depIdxs = []int32{
-	0, // 0: messages.DataService.SendUser:input_type -> messages.User
+	0, // 0: messages.DataService.SendUser:input_type -> messages.AlertNotification
 	3, // 1: messages.ProcessingService.ReloadSubscriptions:input_type -> google.protobuf.Empty
 	1, // 2: messages.DataService.SendUser:output_type -> messages.Ack
 	2, // 3: messages.ProcessingService.ReloadSubscriptions:output_type -> messages.ReloadSubscriptionsResponse
