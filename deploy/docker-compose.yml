@@ -53,6 +53,8 @@ services:
             - rabbitmq
             - postgres-db
             - delivery-go
+        ports:
+            - "50050:50050"
 
     bot-go:
         build:
@@ -60,6 +62,7 @@ services:
             dockerfile: cmd/bot/Dockerfile
         container_name: bot-go-nxe
         environment:
+            - TELEGRAM_BOT_API=${TELEGRAM_BOT_API}
             - DB_USER=${DB_USER}
             - DB_PWD=${DB_PWD}
             - DB_NAME=${DB_NAME}
