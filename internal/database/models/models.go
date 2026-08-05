@@ -7,7 +7,7 @@ type Subscription struct {
 	MinSpreadPercent      float64  `gorm:"not null"`
 	MinVolume             float64  `gorm:"not null"`
 	MinPriceChangePercent float64  `gorm:"not null"`
-	Exchanges             []string `gorm:"text[]"`
+	// Exchanges             []string `gorm:"text[]"`
 }
 
 type CachedMaps struct {
