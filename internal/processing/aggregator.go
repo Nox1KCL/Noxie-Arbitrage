@@ -8,7 +8,7 @@ import (
 
 type Aggregator struct {
 	Ticks      map[string]map[string]*TickerForm // Symbol / Exchanges
-	Maps       *models.CachedMaps
+	GetMaps    func() *models.CachedMaps
 	LastAlerts map[int64]map[string]float64
 }
 
@@ -23,16 +23,16 @@ type Spread struct {
 	SecondVolume float64
 }
 
-func NewAggregator(maps *models.CachedMaps) *Aggregator {
+func NewAggregator(store *SubscriptionStore) *Aggregator {
 	return &Aggregator{
 		Ticks:      make(map[string]map[string]*TickerForm),
-		Maps:       maps,
+		GetMaps:    store.Get,
 		LastAlerts: make(map[int64]map[string]float64),
 	}
 }
 
 func Aggregation(agg *Aggregator, t *TickerForm) *Spread {
-	_, exists := agg.Maps.InterestedSymbols[t.Symbol]
+	_, exists := agg.GetMaps().InterestedSymbols[t.Symbol]
 	if !exists {
 		return nil
 	}
@@ -60,7 +60,6 @@ func (agg *Aggregator) TTLChecker() {
 			}
 		}
 	}
-
 }
 
 func (agg *Aggregator) Arbitrage(symbol string) *Spread {

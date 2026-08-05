@@ -3,9 +3,12 @@ package processing
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
+	"github.com/Nox1KCL/Arbitrage/internal/database"
 	"github.com/Nox1KCL/Arbitrage/internal/database/models"
 	"github.com/Nox1KCL/Arbitrage/internal/transport"
+	"gorm.io/gorm"
 )
 
 type MatchResult struct {
@@ -14,8 +17,25 @@ type MatchResult struct {
 	Sub    models.Subscription
 }
 
-func Filter(ctx context.Context, channel <-chan TickerForm, payload chan<- []*transport.FormedMessage, maps *models.CachedMaps) {
-	aggregator := NewAggregator(maps)
+type SubscriptionStore struct {
+	ptr atomic.Pointer[models.CachedMaps]
+}
+
+func (s *SubscriptionStore) Get() *models.CachedMaps {
+	return s.ptr.Load()
+}
+
+func (s *SubscriptionStore) Reload(db *gorm.DB) error {
+	maps, err := database.LoadSubscriptions(db, []*models.Subscription{})
+	if err != nil {
+		return err
+	}
+	s.ptr.Store(maps)
+	return nil
+}
+
+func Filter(ctx context.Context, channel <-chan TickerForm, payload chan<- []*transport.FormedMessage, store *SubscriptionStore) {
+	aggregator := NewAggregator(store)
 	for {
 		select {
 		case <-ctx.Done():
@@ -41,7 +61,7 @@ func Filter(ctx context.Context, channel <-chan TickerForm, payload chan<- []*tr
 
 func Match(agg *Aggregator, spread *Spread) []*MatchResult {
 	matches := []*MatchResult{}
-	subs := agg.Maps.SubsBySymbol[spread.Symbol]
+	subs := agg.GetMaps().SubsBySymbol[spread.Symbol]
 	for _, sub := range subs {
 		if spread.Spread >= sub.MinSpreadPercent && spread.FirstVolume >= sub.MinVolume && spread.SecondVolume >= sub.MinVolume {
 			if CheckAlert(agg, sub, spread) {
@@ -70,7 +90,7 @@ func CheckAlert(agg *Aggregator, sub models.Subscription, spread *Spread) bool {
 }
 
 func FormMessage(matches []*MatchResult) []*transport.FormedMessage {
-	var msgs = []*transport.FormedMessage{}
+	msgs := []*transport.FormedMessage{}
 	for _, m := range matches {
 		s := m.Spread
 		id := m.UserID
