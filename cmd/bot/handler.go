@@ -24,7 +24,7 @@ func HandleUpdate(ctx context.Context, db *gorm.DB, client pb.ProcessingServiceC
 
 	switch cmd {
 	case "/subscribe":
-		text, err := handleSubsribe(msg.Chat.ID, args, db)
+		text, err := handleSubscribe(msg.Chat.ID, args, db)
 		if err != nil {
 			return fmt.Errorf("handling subscription: %w", err)
 		}
@@ -41,7 +41,7 @@ func HandleUpdate(ctx context.Context, db *gorm.DB, client pb.ProcessingServiceC
 		sendMessage(ctx, token, msg.Chat.ID, text)
 
 	case "/unsubscribe":
-		text, err := handleUnsubsribe(msg.Chat.ID, args, db)
+		text, err := handleUnsubscribe(msg.Chat.ID, args, db)
 		if err != nil {
 			return fmt.Errorf("handling unsubscribe: %w", err)
 		}
@@ -49,6 +49,18 @@ func HandleUpdate(ctx context.Context, db *gorm.DB, client pb.ProcessingServiceC
 		if _, err := client.ReloadSubscriptions(ctx, &emptypb.Empty{}); err != nil {
 			return fmt.Errorf("reloading subscriptions: %w", err)
 		}
+	case "/start":
+		text := fmt.Sprintf(
+			"⚡ Noxie Arbitrage Bot\n\n" +
+				"Commands:\n" +
+				"/subscribe SYMBOL SPREAD%% VOLUME CHANGE%%\n" +
+				"  e.g. /subscribe BTCUSDT 0.5 100 1\n\n" +
+				"/subscriptions — show your active subs\n\n" +
+				"/unsubscribe SYMBOL\n" +
+				"  e.g. /unsubscribe BTCUSDT\n\n" +
+				"Start by subscribing to a pair and wait for alerts!",
+		)
+		sendMessage(ctx, token, msg.Chat.ID, text)
 
 	default:
 		sendMessage(ctx, token, msg.Chat.ID, "I don't know that commad.")
@@ -56,7 +68,7 @@ func HandleUpdate(ctx context.Context, db *gorm.DB, client pb.ProcessingServiceC
 	return nil
 }
 
-func handleSubsribe(chatID int64, args []string, db *gorm.DB) (string, error) {
+func handleSubscribe(chatID int64, args []string, db *gorm.DB) (string, error) {
 	if len(args) != 4 {
 		return "You must specify 4 arguments!", nil
 	}
@@ -97,16 +109,17 @@ func handleSubscriptions(chatID int64, db *gorm.DB) (string, error) {
 		return "You don't have active subs :(", nil
 	}
 
-	var symbols []string
+	var lines []string
 	for _, s := range subs {
-		symbols = append(symbols, s.Symbol)
+		line := fmt.Sprintf("%s | spread ≥ %.2f%% | vol ≥ %.0f | Δ ≥ %.1f%%",
+			s.Symbol, s.MinSpreadPercent, s.MinVolume, s.MinPriceChangePercent)
+		lines = append(lines, line)
 	}
-
-	text := fmt.Sprintf("You are tune on %s", strings.Join(symbols, " "))
+	text := fmt.Sprintf("Your subscriptions:\n\n%s\n\n%d active", strings.Join(lines, "\n"), len(subs))
 	return text, nil
 }
 
-func handleUnsubsribe(chatID int64, args []string, db *gorm.DB) (string, error) {
+func handleUnsubscribe(chatID int64, args []string, db *gorm.DB) (string, error) {
 	if len(args) != 1 {
 		return "You forgot to say Ticker(symbol)!!", nil
 	}

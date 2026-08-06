@@ -96,7 +96,7 @@ func FormMessage(matches []*MatchResult) []*transport.FormedMessage {
 		id := m.UserID
 
 		text := fmt.Sprintf(
-			"Арбітраж %s\nКупити: %s @ %.4f\nПродати: %s @ %.4f\nСпред: %.4f%% | Обсяг: %.4f / %.4f",
+			"Arbitrage %s\nBuy: %s @ %.4f\nSell: %s @ %.4f\nSpread: %.4f%% | Volume: %.4f / %.4f",
 			s.Symbol,
 			s.BuyExchange, s.BuyPrice,
 			s.SellExchange, s.SellPrice,
