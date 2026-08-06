@@ -13,7 +13,7 @@ type Config struct {
 	WorkersNum int                 `toml:"workers_num"`
 	AdminID    int                 `toml:"admin_id"`
 	LogsDir    string              `toml:"logs_dir"`
-	Logger     logger.LumberConfig `toml:"logger"`
+	LumberConfig     logger.LumberConfig `toml:"logger"`
 }
 
 func GetConfig(path string) (*Config, error) {
