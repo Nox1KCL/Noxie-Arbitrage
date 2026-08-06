@@ -1,7 +1,7 @@
 services:
     postgres-db:
         image: postgres:17-alpine
-        container_name: postgre-nxe
+        container_name: postgres-nxe
         environment:
             POSTGRES_USER: ${DB_USER}
             POSTGRES_PASSWORD: ${DB_PWD}
@@ -44,7 +44,7 @@ services:
             - DB_NAME=${DB_NAME}
             - DB_HOST=postgres-db
             - DB_PORT=5432
-            - RABBIT_HOST=rabbitmq
+            - RABBIT_HOST=rabbitmq-nxe
             - RABBIT_USER=${RABBIT_USER}
             - RABBIT_PWD=${RABBIT_PWD}
             - RABBIT_PORT=5672
@@ -70,6 +70,7 @@ services:
             - DB_PORT=5432
         depends_on:
             - postgres-db
+            - processing-go
 
     parsers-py:
         build:
@@ -77,7 +78,7 @@ services:
             dockerfile: Dockerfile
         container_name: parsers-py-nxe
         environment:
-            - RABBIT_HOST=rabbitmq
+            - RABBIT_HOST=rabbitmq-nxe
             - RABBIT_USER=${RABBIT_USER}
             - RABBIT_PWD=${RABBIT_PWD}
             - RABBIT_PORT=5672
