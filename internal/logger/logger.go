@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"path/filepath"
 
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -66,8 +67,9 @@ func (h *LeveledHandler) WithGroup(name string) slog.Handler {
 	return &LeveledHandler{handlers: newHandles}
 }
 
-func GetHandler(cfg *LumberConfig, levels map[slog.Level]string) (*LeveledHandler, error) {
+func GetHandler(cfg *LumberConfig, levels map[slog.Level]string, otelLoggerName string) (*LeveledHandler, error) {
 	var handlers []handlerEntry
+	
 	for level, path := range levels {
 		handler, err := HandlerConveyor(path, level, cfg)
 		if err != nil {
@@ -76,9 +78,17 @@ func GetHandler(cfg *LumberConfig, levels map[slog.Level]string) (*LeveledHandle
 		handlers = append(handlers, handlerEntry{level, handler})
 	}
 
+	if otelLoggerName != "" {
+		otelHandler := otelslog.NewHandler(otelLoggerName)
+		handlers = append(handlers, handlerEntry{slog.LevelDebug, otelHandler})
+	}
+
 	logHandler := &LeveledHandler{handlers}
 
-	llog.Info("logger handlers created successfully", "levels_count", len(levels))
+	llog.Info("logger handlers created successfully", 
+		"file_handlers_count", len(levels),
+		"otel_enabled", otelLoggerName != "",
+	)
 	return logHandler, nil
 }
 
