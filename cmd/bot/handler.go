@@ -8,12 +8,11 @@ import (
 	"strings"
 
 	"github.com/Nox1KCL/Arbitrage/internal/database/models"
-	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
 
-func HandleUpdate(ctx context.Context, db *gorm.DB, client pb.ProcessingServiceClient, msg Message, token string) error {
+func HandleUpdate(ctx context.Context, s *botService, msg Message) error {
 	if len(msg.Entities) == 0 || msg.Entities[0].Type != "bot_command" {
 		return nil
 	}
@@ -24,29 +23,29 @@ func HandleUpdate(ctx context.Context, db *gorm.DB, client pb.ProcessingServiceC
 
 	switch cmd {
 	case "/subscribe":
-		text, err := handleSubscribe(msg.Chat.ID, args, db)
+		text, err := handleSubscribe(msg.Chat.ID, args, s.db)
 		if err != nil {
 			return fmt.Errorf("handling subscription: %w", err)
 		}
-		sendMessage(ctx, token, msg.Chat.ID, text)
-		if _, err := client.ReloadSubscriptions(ctx, &emptypb.Empty{}); err != nil {
+		sendMessage(ctx, s.token, msg.Chat.ID, text)
+		if _, err := s.client.ReloadSubscriptions(ctx, &emptypb.Empty{}); err != nil {
 			return fmt.Errorf("reloading subscriptions: %w", err)
 		}
 
 	case "/subscriptions":
-		text, err := handleSubscriptions(msg.Chat.ID, db)
+		text, err := handleSubscriptions(msg.Chat.ID, s.db)
 		if err != nil {
 			return fmt.Errorf("handling subscriptions: %w", err)
 		}
-		sendMessage(ctx, token, msg.Chat.ID, text)
+		sendMessage(ctx, s.token, msg.Chat.ID, text)
 
 	case "/unsubscribe":
-		text, err := handleUnsubscribe(msg.Chat.ID, args, db)
+		text, err := handleUnsubscribe(msg.Chat.ID, args, s.db)
 		if err != nil {
 			return fmt.Errorf("handling unsubscribe: %w", err)
 		}
-		sendMessage(ctx, token, msg.Chat.ID, text)
-		if _, err := client.ReloadSubscriptions(ctx, &emptypb.Empty{}); err != nil {
+		sendMessage(ctx, s.token, msg.Chat.ID, text)
+		if _, err := s.client.ReloadSubscriptions(ctx, &emptypb.Empty{}); err != nil {
 			return fmt.Errorf("reloading subscriptions: %w", err)
 		}
 	case "/start":
@@ -60,10 +59,10 @@ func HandleUpdate(ctx context.Context, db *gorm.DB, client pb.ProcessingServiceC
 				"  e.g. /unsubscribe BTCUSDT\n\n" +
 				"Start by subscribing to a pair and wait for alerts!",
 		)
-		sendMessage(ctx, token, msg.Chat.ID, text)
+		sendMessage(ctx, s.token, msg.Chat.ID, text)
 
 	default:
-		sendMessage(ctx, token, msg.Chat.ID, "I don't know that commad.")
+		sendMessage(ctx, s.token, msg.Chat.ID, "I don't know that commad.")
 	}
 	return nil
 }
