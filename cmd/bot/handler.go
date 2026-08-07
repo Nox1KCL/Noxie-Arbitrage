@@ -20,34 +20,51 @@ func HandleUpdate(ctx context.Context, s *botService, msg Message) error {
 
 	cmd, _, _ := strings.Cut(msg.Text[:entity.Length], "@")
 	args := strings.Fields(msg.Text[entity.Length:])
-
+	
 	switch cmd {
 	case "/subscribe":
-		text, err := handleSubscribe(msg.Chat.ID, args, s.db)
+		text, err := handleSubscribe(ctx,msg.Chat.ID, args, s.db, s.metrics)
 		if err != nil {
 			return fmt.Errorf("handling subscription: %w", err)
 		}
-		sendMessage(ctx, s.token, msg.Chat.ID, text)
+		err = sendMessage(ctx, s.token, msg.Chat.ID, text, s.metrics)
+		if err != nil {
+			return fmt.Errorf("sending message: %w", err)
+		}
+		s.metrics.sentMessages.Add(ctx, 1)
+
 		if _, err := s.client.ReloadSubscriptions(ctx, &emptypb.Empty{}); err != nil {
 			return fmt.Errorf("reloading subscriptions: %w", err)
 		}
+		s.metrics.activeSubscriptions.Add(ctx, 1)
 
 	case "/subscriptions":
-		text, err := handleSubscriptions(msg.Chat.ID, s.db)
+		text, err := handleSubscriptions(ctx, msg.Chat.ID, s.db, s.metrics)
 		if err != nil {
 			return fmt.Errorf("handling subscriptions: %w", err)
 		}
-		sendMessage(ctx, s.token, msg.Chat.ID, text)
+		err = sendMessage(ctx, s.token, msg.Chat.ID, text, s.metrics)
+		if err != nil {
+			return fmt.Errorf("sending message: %w", err)
+		}
+		s.metrics.sentMessages.Add(ctx, 1)
 
 	case "/unsubscribe":
-		text, err := handleUnsubscribe(msg.Chat.ID, args, s.db)
+		text, err := handleUnsubscribe(ctx, msg.Chat.ID, args, s.db, s.metrics)
 		if err != nil {
 			return fmt.Errorf("handling unsubscribe: %w", err)
 		}
-		sendMessage(ctx, s.token, msg.Chat.ID, text)
+		err = sendMessage(ctx, s.token, msg.Chat.ID, text, s.metrics)
+		if err != nil {
+			return fmt.Errorf("sending message: %w", err)
+		}
+    s.metrics.sentMessages.Add(ctx, 1)
+
 		if _, err := s.client.ReloadSubscriptions(ctx, &emptypb.Empty{}); err != nil {
 			return fmt.Errorf("reloading subscriptions: %w", err)
 		}
+		s.metrics.activeSubscriptions.Add(ctx, -1)
+
 	case "/start":
 		text := fmt.Sprintf(
 			"⚡ Noxie Arbitrage Bot\n\n" +
@@ -59,15 +76,24 @@ func HandleUpdate(ctx context.Context, s *botService, msg Message) error {
 				"  e.g. /unsubscribe BTCUSDT\n\n" +
 				"Start by subscribing to a pair and wait for alerts!",
 		)
-		sendMessage(ctx, s.token, msg.Chat.ID, text)
+		err := sendMessage(ctx, s.token, msg.Chat.ID, text, s.metrics)
+		if err != nil {
+			return fmt.Errorf("sending message: %w", err)
+		}
+		s.metrics.sentMessages.Add(ctx, 1)
 
 	default:
-		sendMessage(ctx, s.token, msg.Chat.ID, "I don't know that commad.")
+		err := sendMessage(ctx, s.token, msg.Chat.ID, "I don't know that commad.", s.metrics)
+		if err != nil {
+			return fmt.Errorf("sending message: %w", err)
+		}
+		s.metrics.sentMessages.Add(ctx, 1)
 	}
+
 	return nil
 }
 
-func handleSubscribe(chatID int64, args []string, db *gorm.DB) (string, error) {
+func handleSubscribe(ctx context.Context, chatID int64, args []string, db *gorm.DB, m *botMetrics) (string, error) {
 	if len(args) != 4 {
 		return "You must specify 4 arguments!", nil
 	}
@@ -91,6 +117,7 @@ func handleSubscribe(chatID int64, args []string, db *gorm.DB) (string, error) {
 		MinPriceChangePercent: minPriceChange,
 	})
 	if result.Error != nil {
+		m.dbErrors.Add(ctx, 1)
 		return "You already have the same subscription!", nil
 	}
 
@@ -98,10 +125,11 @@ func handleSubscribe(chatID int64, args []string, db *gorm.DB) (string, error) {
 	return text, nil
 }
 
-func handleSubscriptions(chatID int64, db *gorm.DB) (string, error) {
+func handleSubscriptions(ctx context.Context, chatID int64, db *gorm.DB, m *botMetrics) (string, error) {
 	var subs []models.Subscription
 	result := db.Where("telegram_chat_id = ?", chatID).Find(&subs)
 	if result.Error != nil {
+		m.dbErrors.Add(ctx, 1)
 		return "", fmt.Errorf("finding fields with ID-%d: %w", chatID, result.Error)
 	}
 	if len(subs) == 0 {
@@ -118,13 +146,14 @@ func handleSubscriptions(chatID int64, db *gorm.DB) (string, error) {
 	return text, nil
 }
 
-func handleUnsubscribe(chatID int64, args []string, db *gorm.DB) (string, error) {
+func handleUnsubscribe(ctx context.Context, chatID int64, args []string, db *gorm.DB, m *botMetrics) (string, error) {
 	if len(args) != 1 {
 		return "You forgot to say Ticker(symbol)!!", nil
 	}
 	symbol := strings.ToUpper(args[0])
 	result := db.Where("telegram_chat_id = ? AND symbol = ?", chatID, symbol).Delete(&models.Subscription{})
 	if result.Error != nil {
+		m.dbErrors.Add(ctx, 1)
 		return "", fmt.Errorf("deleting sub with ID-%d: %w", chatID, result.Error)
 	}
 	if result.RowsAffected == 0 {

@@ -49,16 +49,18 @@ type getUpdatesResponse struct {
 
 var telegramAPI = "https://api.telegram.org"
 
-func GetUpdates(ctx context.Context, token string, offset int64) ([]Update, error) {
+func GetUpdates(ctx context.Context, token string, offset int64, m *botMetrics) ([]Update, error) {
 	url := fmt.Sprintf("%s/bot%s/getUpdates?offset=%d&timeout=30", telegramAPI, token, offset)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
+		m.requestsErrors.Add(ctx, 1)
 		return nil, err
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		m.clientErrors.Add(ctx, 1)
 		return nil, fmt.Errorf("sending request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -68,13 +70,14 @@ func GetUpdates(ctx context.Context, token string, offset int64) ([]Update, erro
 	if err != nil {
 		return nil, fmt.Errorf("decoding req: %w", err)
 	}
+
 	if !decodedResp.Ok {
 		return nil, fmt.Errorf("telegram error: %t | %s", decodedResp.Ok, decodedResp.Description)
 	}
 	return decodedResp.Result, nil
 }
 
-func sendMessage(ctx context.Context, token string, chatID int64, text string) error {
+func sendMessage(ctx context.Context, token string, chatID int64, text string, m *botMetrics) error {
 	if token == "" {
 		return fmt.Errorf("TELEGRAM_BOT_API is not set")
 	}
@@ -87,6 +90,7 @@ func sendMessage(ctx context.Context, token string, chatID int64, text string) e
 	url := fmt.Sprintf("%s/bot%s/sendMessage", telegramAPI, token)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
+		m.requestsErrors.Add(ctx, 1)
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -94,6 +98,7 @@ func sendMessage(ctx context.Context, token string, chatID int64, text string) e
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		m.clientErrors.Add(ctx, 1)
 		return fmt.Errorf("sending request: %w", err)
 	}
 	defer resp.Body.Close()

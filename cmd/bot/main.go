@@ -27,7 +27,8 @@ type botMetrics struct {
 	sentMessages        metric.Int64Counter
 	dbErrors            metric.Int64Counter
 	activeSubscriptions metric.Int64UpDownCounter
-	tgRequestsCount     metric.Int64Counter
+	requestsErrors      metric.Int64Counter
+	clientErrors        metric.Int64Counter
 }
 
 func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
@@ -55,10 +56,18 @@ func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
 		return nil, err
 	}
 
-	tgRequestsCount, err := meter.Int64Counter(
-		"telegram_requests_count",
+	requestsErrors, err := meter.Int64Counter(
+		"requests_errors_count",
 		metric.WithDescription("Total count of telegram requests count"),
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	clientErrors, err := meter.Int64Counter(
+		"client_errors_count",
+		metric.WithDescription("Total count of client errors"),
+		)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +76,8 @@ func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
 		sentMessages:        sentMessages,
 		dbErrors:            dbErrors,
 		activeSubscriptions: activeSubscriptions,
-		tgRequestsCount:     tgRequestsCount,
+		requestsErrors:      requestsErrors,
+		clientErrors: clientErrors,
 	}, nil
 }
 
@@ -163,7 +173,7 @@ func Polling(ctx context.Context, service *botService) {
 		default:
 		}
 
-		updates, err := GetUpdates(ctx, service.token, offset)
+		updates, err := GetUpdates(ctx, service.token, offset, service.metrics)
 		if err != nil {
 			blog.Error("Trying to get updates", "error", err)
 			time.Sleep(2 * time.Second)
