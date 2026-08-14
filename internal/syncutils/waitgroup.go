@@ -1,7 +1,9 @@
 // Package syncutils provides synchronization utilities.
 package syncutils
 
-import "sync"
+import (
+	"sync"
+)
 
 type MyWaitGroup struct {
 	sync.WaitGroup
