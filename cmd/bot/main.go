@@ -15,6 +15,8 @@ import (
 	telemetry "github.com/Nox1KCL/Arbitrage/internal/observer"
 	"github.com/Nox1KCL/Arbitrage/internal/syncutils"
 	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -37,6 +39,7 @@ func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
 		metric.WithDescription("Total count of sent messages"),
 	)
 	if err != nil {
+		err := fmt.Errorf("sentMessage metric init failed: %w", err)
 		return nil, err
 	}
 
@@ -45,6 +48,7 @@ func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
 		metric.WithDescription("Total count of db errors"),
 	)
 	if err != nil {
+		err := fmt.Errorf("dbErrors metric init failed: %w", err)
 		return nil, err
 	}
 
@@ -53,6 +57,7 @@ func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
 		metric.WithDescription("Total count of active subscription"),
 	)
 	if err != nil {
+		err := fmt.Errorf("activeSubscriptions metric init failed: %w", err)
 		return nil, err
 	}
 
@@ -61,14 +66,16 @@ func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
 		metric.WithDescription("Total count of telegram requests count"),
 	)
 	if err != nil {
+		err := fmt.Errorf("requestsErrors metric init failed: %w", err)
 		return nil, err
 	}
 
 	clientErrors, err := meter.Int64Counter(
 		"client_errors_count",
 		metric.WithDescription("Total count of client errors"),
-		)
+	)
 	if err != nil {
+		err := fmt.Errorf("clientErrors metric init failed: %w", err)
 		return nil, err
 	}
 
@@ -77,7 +84,7 @@ func newBotMetrics(meter metric.Meter) (*botMetrics, error) {
 		dbErrors:            dbErrors,
 		activeSubscriptions: activeSubscriptions,
 		requestsErrors:      requestsErrors,
-		clientErrors: clientErrors,
+		clientErrors:        clientErrors,
 	}, nil
 }
 
@@ -105,86 +112,110 @@ func NewBotService(obs *telemetry.Observe, db *gorm.DB, token string, client pb.
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	token := os.Getenv("TELEGRAM_BOT_API")
 	if token == "" {
-		slog.Error("TELEGRAM_BOT_API is not set")
+		blog.ErrorContext(ctx, "TELEGRAM_BOT_API is not set")
 		os.Exit(1)
 	}
 
 	conn, err := grpc.NewClient("processing-go:50050", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		blog.Error("Could not connect to client", "error", err)
-		return
+		blog.ErrorContext(ctx, "Could not connect to client", "error", err)
+		os.Exit(1)
 	}
 	defer conn.Close()
 
 	client := pb.NewProcessingServiceClient(conn)
+	blog.InfoContext(ctx, "grpc server connection finished successfully")
 
 	db, err := database.Connect()
 	if err != nil {
-		slog.Error("Could not connect to db", "error", err)
+		blog.ErrorContext(ctx, "Could not connect to db", "error", err)
 		os.Exit(1)
 	}
 	if err := db.AutoMigrate(&models.Subscription{}); err != nil {
-		blog.Error("Could not create a table", "error", err)
+		blog.ErrorContext(ctx, "Could not create a table", "error", err)
+		os.Exit(1)
+	}
+	blog.Info("db init finished successfully")
+
+	cfg, err := config.GetConfig("config.toml")
+	if err != nil {
+		blog.ErrorContext(ctx, "Could not load config", "error", err)
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cfg, err := config.GetConfig("config.toml")
-	if err != nil {
-		blog.Error("Could not load config", "error", err)
-		os.Exit(1)
-	}
 	shutdown, observer, err := telemetry.NewTelemetry(&cfg.LumberConfig)
 	if err != nil {
-		blog.Error("Could not get observer", "error", err)
+		blog.ErrorContext(ctx, "Could not get observer", "error", err)
 		os.Exit(1)
 	}
 	defer shutdown(ctx)
+	blog.InfoContext(ctx, "telemetry init finished successfully")
 
 	service, err := NewBotService(observer, db, token, client)
 	if err != nil {
-		blog.Error("Could not get bot service", "error", err)
+		blog.ErrorContext(ctx, "Could not get bot service", "error", err)
 		os.Exit(1)
 	}
+	_, span := service.observer.Tracer.Start(ctx, "BotInit")
+	blog.InfoContext(ctx, "botService init finished successfully")
 
 	var wg syncutils.MyWaitGroup
 	wg.Go(func() {
-		Polling(ctx, service)
+		service.Polling(ctx)
 	})
 
 	sig := <-sigChan
-	slog.Warn("Received signal", "signal", sig)
+	blog.WarnContext(ctx, "Received signal", "signal", sig)
 	cancel()
 	wg.Wait()
+	span.AddEvent("recieved signal, gracefully shutdown..")
+	span.SetAttributes(
+		attribute.String("os.signal.name", sig.String()),
+	)
+	span.End()
 }
 
-func Polling(ctx context.Context, service *botService) {
+func (s *botService) Polling(ctx context.Context) {
 	var offset int64 = 0
 	for {
 		// TODO: передивитися може щось подібне зробити десь ще
 		select {
 		case <-ctx.Done():
+			blog.InfoContext(ctx, "gracefully shutdown polling process")
 			return
 		default:
 		}
 
-		updates, err := GetUpdates(ctx, service.token, offset, service.metrics)
-		if err != nil {
-			blog.Error("Trying to get updates", "error", err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
+		s.pollOnce(context.Background(), &offset)
+	}
+}
 
-		for _, update := range updates {
-			if err := HandleUpdate(ctx, service, update.Message); err != nil {
-				blog.Error("Handling update", "error", err)
-			}
-			offset = update.UpdateID + 1
+func (s *botService) pollOnce(ctx context.Context, offset *int64) {
+	ctx, span := s.observer.Tracer.Start(ctx, "BotPolling")
+	defer span.End()
+
+	updates, err := s.GetUpdates(ctx, offset)
+	if err != nil {
+		span.SetStatus(codes.Error, "Trouble to get updates")
+		span.RecordError(err)
+		blog.ErrorContext(ctx, "Trying to get updates", "error", err)
+
+		time.Sleep(2 * time.Second)
+	}
+
+	for _, update := range updates {
+		if err := s.HandleUpdate(ctx, update.Message); err != nil {
+			span.SetStatus(codes.Error, "Trouble to handle update")
+			span.RecordError(err)
+			blog.ErrorContext(ctx, "Handling update", "error", err)
 		}
+		*offset = int64(update.UpdateID + 1)
 	}
 }
