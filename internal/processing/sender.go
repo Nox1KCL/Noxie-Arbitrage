@@ -8,6 +8,8 @@ import (
 	telemetry "github.com/Nox1KCL/Arbitrage/internal/observer"
 	"github.com/Nox1KCL/Arbitrage/internal/transport"
 	pb "github.com/Nox1KCL/Arbitrage/internal/transport/proto"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 var selog = slog.With("service", "processing")
@@ -17,34 +19,52 @@ type SendingServer struct {
 	Obs    *telemetry.Observe
 }
 
-func Sending(ctx context.Context, payload chan []*transport.FormedMessage, s *SendingServer) {
+func (s *SendingServer) Sending(ctx context.Context, payload chan []*transport.FormedMessage) {
+	metrics, err := NewProcessingMetrics(s.Obs.Meter)
+	if err != nil {
+		plog.ErrorContext(ctx, "could not init processing metrics", "error", err)
+		return
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case msgs := <-payload:
 			childCtx, span := s.Obs.Tracer.Start(ctx, "SendingProcess")
-			sendingProcess(childCtx, msgs, s)
+			s.sendingProcess(childCtx, msgs, metrics)
 			span.End()
 		}
 	}
 }
 
-func sendingProcess(ctx context.Context, msgs []*transport.FormedMessage, s *SendingServer) {
-	for _, m := range msgs {
+func (s *SendingServer) sendingProcess(ctx context.Context, msgs []*transport.FormedMessage, m *processingMetrics) {
+	for _, msg := range msgs {
 		req := &pb.AlertNotification{
-			TelegramChatId: m.TelegramUserID,
-			Text:           m.Text,
+			TelegramChatId: msg.TelegramUserID,
+			Text:           msg.Text,
 		}
 
-		res := gRPCsender(ctx, req, s)
+		res := s.gRPCsender(ctx, req, m)
 		if res != nil && !res.GetStatus() {
 			selog.Warn("Delivery rejected message", "details", res.GetDetails())
+			m.counter.Add(ctx, 1, metric.WithAttributes(
+				attribute.String("stage", "msg.delivery"),
+				attribute.String("type", "grpc.sending.error"),
+			))
 		}
 	}
 }
 
-func gRPCsender(ctx context.Context, req *pb.AlertNotification, s *SendingServer) *pb.Ack {
+func (s *SendingServer) gRPCsender(ctx context.Context, req *pb.AlertNotification, m *processingMetrics) *pb.Ack {
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start).Seconds()
+		m.histogram.Record(ctx, duration, metric.WithAttributes(
+			attribute.String("stage", "sending"),
+		))
+	}()
+
 	childCtx, span := s.Obs.Tracer.Start(ctx, "grpcRequest")
 	defer span.End()
 
