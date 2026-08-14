@@ -137,7 +137,7 @@ func main() {
 
 	serviceWg.Go(func() {
 		plog.InfoContext(ctx, "Starting sending process")
-		processing.Sending(ctx, payload, s)
+		s.Sending(ctx, payload)
 	})
 
 	sig := <-sigChan

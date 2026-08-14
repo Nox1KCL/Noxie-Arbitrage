@@ -5,56 +5,67 @@ import (
 	"fmt"
 	"log/slog"
 	"sync/atomic"
+	"time"
 
 	"github.com/Nox1KCL/Arbitrage/internal/database"
 	"github.com/Nox1KCL/Arbitrage/internal/database/models"
 	telemetry "github.com/Nox1KCL/Arbitrage/internal/observer"
 	"github.com/Nox1KCL/Arbitrage/internal/transport"
-	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"gorm.io/gorm"
 )
 
 var plog = slog.With("service", "processing")
 
-type deliveryMetrics struct {
-	sentMessages metric.Int64Counter
+type processingMetrics struct {
+	counter       metric.Int64Counter
+	histogram     metric.Float64Histogram
 }
 
-func NewDeliveryMetrics(meter metric.Meter) (*deliveryMetrics, error) {
-	sentMessages, err := meter.Int64Counter(
-		"sent_messages",
-		metric.WithDescription("Total count of sent messages"),
+func NewProcessingMetrics(meter metric.Meter) (*processingMetrics, error) {
+	counter, err := meter.Int64Counter(
+		"counter",
+		metric.WithDescription("for counting messages, errors"),
 	)
 	if err != nil {
-		err := fmt.Errorf("sentMessages init failed: %w", err)
+		err := fmt.Errorf("counter init failed: %w", err)
 		return nil, err
 	}
 
-	return &deliveryMetrics{
-		sentMessages: sentMessages,
+	histogram, err := meter.Float64Histogram(
+		"histogram",
+		metric.WithDescription("for calculating time of requests, filtration"),
+	)
+	if err != nil {
+		err := fmt.Errorf("histogram init failed: %w", err)
+		return nil, err
+	}
+
+	return &processingMetrics{
+		counter:       counter,
+		histogram:     histogram,
 	}, nil
 }
 
-type deliveryService struct {
-	metrics    *deliveryMetrics
+type processingService struct {
+	metrics    *processingMetrics
 	observer   *telemetry.Observe
 	aggregator *Aggregator
 }
 
-func NewDeliveryService(obs *telemetry.Observe, agg *Aggregator) (*deliveryService, error) {
-	metrics, err := NewDeliveryMetrics(obs.Meter)
+func NewProcessingService(obs *telemetry.Observe, agg *Aggregator) (*processingService, error) {
+	metrics, err := NewProcessingMetrics(obs.Meter)
 	if err != nil {
 		err := fmt.Errorf("getting metrics: %w", err)
 		return nil, err
 	}
-	return &deliveryService{
+	return &processingService{
 		metrics:    metrics,
 		observer:   obs,
 		aggregator: agg,
 	}, nil
 }
-
 
 type MatchResult struct {
 	UserID int64
@@ -82,52 +93,66 @@ func (s *SubscriptionStore) Reload(db *gorm.DB) error {
 func Filter(ctx context.Context, channel <-chan TickerForm, payload chan<- []*transport.FormedMessage, store *SubscriptionStore, obs *telemetry.Observe) error {
 	aggregator := NewAggregator(store)
 
-	service, err := NewDeliveryService(obs, aggregator)
+	service, err := NewProcessingService(obs, aggregator)
 	if err != nil {
 		return err
 	}
 
-	_, span := service.observer.Tracer.Start(ctx, "FilterProcessing")
-	defer span.End()
-	span.AddEvent("Starting filter processing")
-
 	for {
 		select {
 		case <-ctx.Done():
-			span.SetStatus(codes.Error, "cancel context")
 			return fmt.Errorf("context cancel signal")
 		case data, ok := <-channel:
 			if !ok {
 				err := fmt.Errorf("closed broker channel: %t", ok)
-				span.SetStatus(codes.Error, "closed channel")
-				span.RecordError(err)
-
 				return err
 			}
-
 			msgs, err := service.msgsProcessing(context.Background(), &data)
 			if err != nil {
 				plog.InfoContext(ctx, "aggregation cycle error", "error", err)
 				continue
 			}
 
+			service.metrics.counter.Add(ctx, 1, metric.WithAttributes(
+				attribute.String("stage", "filtration"),
+				attribute.String("type", "sent.data"),
+			))
+
 			payload <- msgs
 		}
 	}
 }
 
-func (s *deliveryService) msgsProcessing(ctx context.Context, data *TickerForm) ([]*transport.FormedMessage, error) {
-	_, span := s.observer.Tracer.Start(ctx, "AggregationCycle")
+func (s *processingService) msgsProcessing(ctx context.Context, data *TickerForm) ([]*transport.FormedMessage, error) {
+	ctx, span := s.observer.Tracer.Start(ctx, "AggregationCycle")
 	defer span.End()
+
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start).Seconds()
+		s.metrics.histogram.Record(ctx, duration, metric.WithAttributes(
+			attribute.String("stage", "aggregation"),
+		))
+	}()
 
 	spread := Aggregation(s.aggregator, data)
 	if spread == nil {
 		span.AddEvent("No spread value")
+		s.metrics.counter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("stage", "aggregation.spread"),
+			attribute.String("type", "no.valuable.errors"),
+		))
+
 		return nil, nil
 	}
 	matches := s.Match(spread)
 	if len(matches) == 0 {
 		span.AddEvent("Matches length is zero")
+		s.metrics.counter.Add(ctx, 1, metric.WithAttributes(
+			attribute.String("stage", "aggregation.matches"),
+			attribute.String("type", "no.valuable.errors"),
+		))
+
 		return nil, nil
 	}
 
@@ -135,7 +160,7 @@ func (s *deliveryService) msgsProcessing(ctx context.Context, data *TickerForm) 
 	return msgs, nil
 }
 
-func (s *deliveryService) Match(spread *Spread) []*MatchResult {
+func (s *processingService) Match(spread *Spread) []*MatchResult {
 	matches := []*MatchResult{}
 	subs := s.aggregator.GetMaps().SubsBySymbol[spread.Symbol]
 	for _, sub := range subs {
@@ -153,7 +178,7 @@ func (s *deliveryService) Match(spread *Spread) []*MatchResult {
 	return matches
 }
 
-func (s *deliveryService) CheckAlert(sub models.Subscription, spread *Spread) bool {
+func (s *processingService) CheckAlert(sub models.Subscription, spread *Spread) bool {
 	if s.aggregator.LastAlerts[sub.TelegramChatID] == nil {
 		s.aggregator.LastAlerts[sub.TelegramChatID] = make(map[string]float64)
 	}
