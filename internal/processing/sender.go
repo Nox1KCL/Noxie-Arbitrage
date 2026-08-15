@@ -2,7 +2,6 @@ package processing
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	telemetry "github.com/Nox1KCL/Arbitrage/internal/observer"
@@ -11,8 +10,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
-
-var selog = slog.With("service", "processing")
 
 type SendingServer struct {
 	Client pb.DataServiceClient
@@ -47,7 +44,7 @@ func (s *SendingServer) sendingProcess(ctx context.Context, msgs []*transport.Fo
 
 		res := s.gRPCsender(ctx, req, m)
 		if res != nil && !res.GetStatus() {
-			selog.Warn("Delivery rejected message", "details", res.GetDetails())
+			plog.Warn("Delivery rejected message", "details", res.GetDetails())
 			m.counter.Add(ctx, 1, metric.WithAttributes(
 				attribute.String("stage", "msg.delivery"),
 				attribute.String("type", "grpc.sending.error"),
