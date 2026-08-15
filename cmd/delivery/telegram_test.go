@@ -7,7 +7,22 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	telemetry "github.com/Nox1KCL/Arbitrage/internal/observer"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 )
+
+func dummyTelemetry() (*telemetry.Observe, *deliveryMetrics) {
+	tp := tracenoop.NewTracerProvider()
+	mp := metricnoop.NewMeterProvider()
+	obs := &telemetry.Observe{
+		Tracer: tp.Tracer("test"),
+		Meter:  mp.Meter("test"),
+	}
+	m, _ := NewDeliveryMetrics(obs.Meter)
+	return obs, m
+}
 
 func TestSendTelegramMessage(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -17,7 +32,8 @@ func TestSendTelegramMessage(t *testing.T) {
 		defer server.Close()
 		setup(t, server)
 
-		err := sendTelegramMessage(context.Background(), 123, "hello")
+		obs, m := dummyTelemetry()
+		err := sendTelegramMessage(context.Background(), 123, "hello", obs, m)
 		if err != nil {
 			t.Fatalf("expected nil error, got: %v", err)
 		}
@@ -30,7 +46,8 @@ func TestSendTelegramMessage(t *testing.T) {
 		defer server.Close()
 		setup(t, server)
 
-		err := sendTelegramMessage(context.Background(), 123, "hello")
+		obs, m := dummyTelemetry()
+		err := sendTelegramMessage(context.Background(), 123, "hello", obs, m)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -46,7 +63,8 @@ func TestSendTelegramMessage(t *testing.T) {
 		defer server.Close()
 		setup(t, server)
 
-		err := sendTelegramMessage(context.Background(), 123, "hello")
+		obs, m := dummyTelemetry()
+		err := sendTelegramMessage(context.Background(), 123, "hello", obs, m)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -55,7 +73,8 @@ func TestSendTelegramMessage(t *testing.T) {
 	t.Run("token not set", func(t *testing.T) {
 		t.Setenv("TELEGRAM_BOT_API", "")
 
-		err := sendTelegramMessage(context.Background(), 123, "hello")
+		obs, m := dummyTelemetry()
+		err := sendTelegramMessage(context.Background(), 123, "hello", obs, m)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -86,7 +105,8 @@ func TestSendTelegramMessage(t *testing.T) {
 		defer server.Close()
 		setup(t, server)
 
-		if err := sendTelegramMessage(context.Background(), 987654, "test text"); err != nil {
+		obs, m := dummyTelemetry()
+		if err := sendTelegramMessage(context.Background(), 987654, "test text", obs, m); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
