@@ -1,4 +1,6 @@
 import asyncio
+import time
+from opentelemetry import metrics
 
 import httpx, signal
 from loguru import logger
@@ -11,18 +13,43 @@ from parsers.scrapers.binance import BinanceScraper
 from parsers.scrapers.bybit import BybitScraper
 from parsers.utils import get_env, get_random_interval, get_url
 
+meter = metrics.get_meter(__name__)
+
+counter = meter.create_counter(
+    "counter",
+    description="Counting of processed valuables"
+)
+histogram = meter.create_histogram(
+    "histogram",
+    description="Calculating total time of processes"
+)
+
 
 async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BasicScraper, cfg: HttpConfig, stop_event: asyncio.Event):
     logger.info(f"worker {worker_id} starting")
+    exchange = type(scraper).__name__
+
     while not stop_event.is_set():
         try:
             symbol = await asyncio.wait_for(queue.get(), timeout=1.0)
         except asyncio.TimeoutError:
             continue
 
+        start = time.time()
+
         try:
             await scraper.process_single(symbol, cfg)
+
+            counter.add(1, {"exchange": exchange, "stage": "worker", "type": "scraper.processed.success"})
+
+        except Exception as e:
+            counter.add(1, {"exchange": exchange, "stage": "worker", "type": "scraper.errors"})
+            logger.error(f"Error parsing {symbol}: {e}")
+
         finally:
+            duration = time.time() - start
+            histogram.record(duration, {"exchange": exchange, "stage": "worker", "type": "spent.time"})
+
             queue.task_done()
 
 async def dispatcher(symbols: list[str], queues: list[asyncio.Queue[str]], interval: float, stop_event: asyncio.Event):
