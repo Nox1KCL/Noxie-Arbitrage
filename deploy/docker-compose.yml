@@ -1,91 +1,151 @@
 services:
-    postgres-db:
-        image: postgres:17-alpine
-        container_name: postgres-nxe
-        environment:
-            POSTGRES_USER: ${DB_USER}
-            POSTGRES_PASSWORD: ${DB_PWD}
-            POSTGRES_DB: ${DB_NAME}
-        ports:
-            - "${DB_PORT}:5432"
-        volumes:
-            - postgres_data:/var/lib/postgresql
+  postgres-db:
+    image: postgres:17-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PWD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
 
-    rabbitmq:
-        image: rabbitmq:4-management-alpine
-        container_name: rabbitmq-nxe
-        environment:
-            RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
-            RABBITMQ_DEFAULT_PASS: ${RABBIT_PWD}
-        ports:
-            - "${RABBIT_PORT}:5672"
-            - "${RABBIT_MP}:15672"
-        volumes:
-            - rabbitmq_data:/var/lib/rabbitmq
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PWD}
+    ports:
+      - "${RABBIT_PORT}:5672"
+      - "${RABBIT_MP}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
-    delivery-go:
-        build:
-            context: ../
-            dockerfile: cmd/delivery/Dockerfile
-        container_name: delivery-nxe
-        ports:
-            - "50051:50051"
-        environment:
-            - TELEGRAM_BOT_API=${TELEGRAM_BOT_API}
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics
+    ports:
+      - "${VM_PORT}:8428"
+    volumes:
+      - vmdata:/victoria-metrics-data
+    command:
+      - "-retentionPeriod=14d"
+      - "-storageDataPath=/victoria-metrics-data"
 
-    processing-go:
-        build:
-            context: ../
-            dockerfile: cmd/processing/Dockerfile
-        container_name: processing-nxe
-        environment:
-            - DB_USER=${DB_USER}
-            - DB_PWD=${DB_PWD}
-            - DB_NAME=${DB_NAME}
-            - DB_HOST=postgres-db
-            - DB_PORT=5432
-            - RABBIT_HOST=rabbitmq-nxe
-            - RABBIT_USER=${RABBIT_USER}
-            - RABBIT_PWD=${RABBIT_PWD}
-            - RABBIT_PORT=5672
-            - RABBIT_MP=15672
-        depends_on:
-            - rabbitmq
-            - postgres-db
-            - delivery-go
-        ports:
-            - "50050:50050"
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "${JAEGER_MP}:16686"
+      - "${JAEGER_PORT}:4318"
+    volumes:
+      - jaeger_data:/badger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
 
-    bot-go:
-        build:
-            context: ../
-            dockerfile: cmd/bot/Dockerfile
-        container_name: bot-go-nxe
-        environment:
-            - TELEGRAM_BOT_API=${TELEGRAM_BOT_API}
-            - DB_USER=${DB_USER}
-            - DB_PWD=${DB_PWD}
-            - DB_NAME=${DB_NAME}
-            - DB_HOST=postgres-db
-            - DB_PORT=5432
-        depends_on:
-            - postgres-db
-            - processing-go
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PWD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
 
-    parsers-py:
-        build:
-            context: ../parsers/
-            dockerfile: Dockerfile
-        container_name: parsers-py-nxe
-        environment:
-            - RABBIT_HOST=rabbitmq-nxe
-            - RABBIT_USER=${RABBIT_USER}
-            - RABBIT_PWD=${RABBIT_PWD}
-            - RABBIT_PORT=5672
-            - RABBIT_MP=15672
-        depends_on:
-            - rabbitmq
+  delivery:
+    build:
+      context: ../
+      dockerfile: cmd/delivery/Dockerfile
+    container_name: delivery
+    ports:
+      - "50051:50051"
+    environment:
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${TRACES_ENDPOINT}
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=${METRICS_ENDPOINT}
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=delivery
+      - TELEGRAM_BOT_API=${TELEGRAM_BOT_API}
+
+  processing:
+    build:
+      context: ../
+      dockerfile: cmd/processing/Dockerfile
+    container_name: processing
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PWD=${DB_PWD}
+      - DB_NAME=${DB_NAME}
+      - DB_HOST=postgres-db
+      - DB_PORT=5432
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_USER=${RABBIT_USER}
+      - RABBIT_PWD=${RABBIT_PWD}
+      - RABBIT_PORT=5672
+      - RABBIT_MP=15672
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${TRACES_ENDPOINT}
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=${METRICS_ENDPOINT}
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=processing
+    depends_on:
+      - rabbitmq
+      - postgres-db
+      - delivery
+      - jaeger
+      - victoriametrics
+      - grafana
+    ports:
+      - "50050:50050"
+
+  bot:
+    build:
+      context: ../
+      dockerfile: cmd/bot/Dockerfile
+    container_name: bot
+    environment:
+      - TELEGRAM_BOT_API=${TELEGRAM_BOT_API}
+      - DB_USER=${DB_USER}
+      - DB_PWD=${DB_PWD}
+      - DB_NAME=${DB_NAME}
+      - DB_HOST=postgres-db
+      - DB_PORT=5432
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${TRACES_ENDPOINT}
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=${METRICS_ENDPOINT}
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=bot
+    depends_on:
+      - postgres-db
+      - processing
+
+  parsers:
+    build:
+      context: ../parsers/
+      dockerfile: Dockerfile
+    container_name: parsers
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_USER=${RABBIT_USER}
+      - RABBIT_PWD=${RABBIT_PWD}
+      - RABBIT_PORT=5672
+      - RABBIT_MP=15672
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=${TRACES_ENDPOINT}
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=${METRICS_ENDPOINT}
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=parsers
+    depends_on:
+      - rabbitmq
+      - jaeger
+      - victoriametrics
+      - grafana
 
 volumes:
-    postgres_data:
-    rabbitmq_data:
+  postgres_data:
+  rabbitmq_data:
+  vmdata:
+  jaeger_data:
+  grafana_data:
