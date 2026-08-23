@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: processing
+  labels:
+    app: arbitrage-processing
+    version: "1.0"
+    component: backend
+    tier: backend
+    part-of: noxie-arbitrage
+    owner: nox1kcl
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arbitrage-processing
+  template:
+    metadata:
+      labels:
+        app: arbitrage-processing
+        version: "1.0"
+        component: backend
+        tier: backend
+        part-of: noxie-arbitrage
+        owner: nox1kcl
+    spec:
+      containers:
+        - name: processing
+          image: nox1kcl/arbitrage-processing:v1.2
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          ports:
+            - containerPort: 50050
+          volumeMounts:
+            - name: config-vol
+              mountPath: /app/config.toml
+              subPath: config.toml
+      volumes:
+        - name: config-vol
+          configMap:
+            name: backend-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: processing
+  labels:
+    app: arbitrage-processing
+    part-of: noxie-arbitrage
+spec:
+  selector:
+    app: arbitrage-processing
+  ports:
+    - name: grpc
+      port: 50050
+      targetPort: 50050

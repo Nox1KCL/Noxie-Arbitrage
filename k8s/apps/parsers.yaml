@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parsers
+  labels:
+    app: arbitrage-parsers
+    version: "1.0"
+    component: parser
+    tier: backend
+    part-of: noxie-arbitrage
+    owner: nox1kcl
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arbitrage-parsers
+  template:
+    metadata:
+      labels:
+        app: arbitrage-parsers
+        version: "1.0"
+        component: parser
+        tier: backend
+        part-of: noxie-arbitrage
+        owner: nox1kcl
+    spec:
+      containers:
+        - name: parsers
+          image: nox1kcl/arbitrage-parsers:v1.3
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          volumeMounts:
+            - name: config-vol
+              mountPath: /app/src/parsers/config/config.toml
+              subPath: config.toml
+      volumes:
+        - name: config-vol
+          configMap:
+            name: parsers-config

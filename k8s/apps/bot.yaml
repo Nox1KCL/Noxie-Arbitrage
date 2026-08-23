@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot
+  labels:
+    app: arbitrage-bot
+    version: "1.0"
+    component: backend
+    tier: backend
+    part-of: noxie-arbitrage
+    owner: nox1kcl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arbitrage-bot
+  template:
+    metadata:
+      labels:
+        app: arbitrage-bot
+        version: "1.0"
+        component: backend
+        tier: backend
+        part-of: noxie-arbitrage
+        owner: nox1kcl
+    spec:
+      containers:
+        - name: bot
+          image: nox1kcl/arbitrage-bot:v1.2
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          volumeMounts:
+            - name: config-vol
+              mountPath: /app/config.toml
+              subPath: config.toml
+      volumes:
+        - name: config-vol
+          configMap:
+            name: backend-config

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery
+  labels:
+    app: arbitrage-delivery
+    version: "1.0"
+    component: backend
+    tier: backend
+    part-of: noxie-arbitrage
+    owner: nox1kcl
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arbitrage-delivery
+  template:
+    metadata:
+      labels:
+        app: arbitrage-delivery
+        version: "1.0"
+        component: backend
+        tier: backend
+        part-of: noxie-arbitrage
+        owner: nox1kcl
+    spec:
+      containers:
+        - name: delivery
+          image: nox1kcl/arbitrage-delivery:v1.2
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          ports:
+            - containerPort: 50051
+          volumeMounts:
+            - name: config-vol
+              mountPath: /app/config.toml
+              subPath: config.toml
+      volumes:
+        - name: config-vol
+          configMap:
+            name: backend-config
+---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivery
+  labels:
+    app: arbitrage-delivery
+    part-of: noxie-arbitrage
+spec:
+  selector:
+    app: arbitrage-delivery
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
