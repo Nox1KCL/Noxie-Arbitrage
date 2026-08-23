@@ -20,10 +20,10 @@ def get_env():
     _ = load_dotenv(PROJECT_ROOT / ".env")
 
 def get_url() -> str:
-    host = os.getenv("RABBIT_HOST")
-    pwd = os.getenv("RABBIT_PWD")
-    user = os.getenv("RABBIT_USER")
-    port = os.getenv("RABBIT_PORT")
+    host = os.getenv("RABBITMQ_HOST")
+    user = os.getenv("RABBITMQ_DEFAULT_USER")
+    pwd = os.getenv("RABBITMQ_DEFAULT_PASS")
+    port = os.getenv("RABBITMQ_PORT")
 
     url = f"amqp://{user}:{pwd}@{host}:{port}/"
     return url
