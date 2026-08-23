@@ -14,10 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 tracer = trace.get_tracer(__name__)
 meter = metrics.get_meter(__name__)
 
-counter = meter.create_counter(
-    "counter",
-    description="Counting of processed valuables"
-)
+counter = meter.create_counter("counter", description="Counting of processed valuables")
 
 def get_env():
     _ = load_dotenv(PROJECT_ROOT / ".env")
@@ -32,7 +29,9 @@ def get_url() -> str:
     return url
 
 @tracer.start_as_current_span("get_data_info")
-async def get_data(url: str, client: httpx.AsyncClient, cfg: HttpConfig) -> httpx.Response:
+async def get_data(
+    url: str, client: httpx.AsyncClient, cfg: HttpConfig
+) -> httpx.Response:
     try:
         span = trace.get_current_span()
         span.set_attribute("fetch.url", url)
@@ -53,7 +52,7 @@ async def get_data(url: str, client: httpx.AsyncClient, cfg: HttpConfig) -> http
 
                 retries -= 1
                 await asyncio.sleep(interval)
-                
+
             counter.add(1, {"url": url, "stage": "utils", "type": "timeout.errors"})
             # TODO: створити власний ексепшн
             raise Exception(f"Failed to fetch data: {response.status_code}")
