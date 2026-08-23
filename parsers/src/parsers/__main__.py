@@ -81,6 +81,7 @@ async def main():
     binance_queue = asyncio.Queue[str]()
     bybit_queue = asyncio.Queue[str]()
 
+    logger.info("starting httpx client session")
     async with httpx.AsyncClient() as client:
         binance = BinanceScraper(
             client=client,
