@@ -37,7 +37,7 @@ func NewDeliveryMetrics(meter metric.Meter) (*deliveryMetrics, error) {
 	}
 
 	histogram, err := meter.Float64Histogram(
-	"histogram",
+		"histogram",
 		metric.WithDescription("for calculating averange stats"),
 	)
 	if err != nil {
@@ -46,7 +46,7 @@ func NewDeliveryMetrics(meter metric.Meter) (*deliveryMetrics, error) {
 	}
 
 	metrics := &deliveryMetrics{
-		counter: counter,
+		counter:   counter,
 		histogram: histogram,
 	}
 	return metrics, nil
@@ -54,7 +54,7 @@ func NewDeliveryMetrics(meter metric.Meter) (*deliveryMetrics, error) {
 
 type server struct {
 	pb.UnimplementedDataServiceServer
-	obs *telemetry.Observe
+	obs     *telemetry.Observe
 	metrics *deliveryMetrics
 }
 
@@ -66,7 +66,7 @@ func (s *server) SendUser(ctx context.Context, req *pb.AlertNotification) (*pb.A
 			"chat_id", req.GetTelegramChatId(),
 		)
 		s.metrics.counter.Add(ctx, 1, metric.WithAttributes(
-		attribute.String("stage", "sendTelegramMessage"),
+			attribute.String("stage", "sendTelegramMessage"),
 			attribute.String("type", "grpc.sent.error"),
 		))
 
@@ -88,6 +88,8 @@ func (s *server) SendUser(ctx context.Context, req *pb.AlertNotification) (*pb.A
 }
 
 func main() {
+	syncutils.LoadEnv()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigChan := make(chan os.Signal, 1)
@@ -120,7 +122,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterDataServiceServer(grpcServer, &server{
-		obs: observer,
+		obs:     observer,
 		metrics: metrics,
 	})
 	reflection.Register(grpcServer)

@@ -1,0 +1,9 @@
+workers_num = 5
+admin_id = 123456789
+logs_dir = "/var/log/arbitrage"
+
+[logger]
+max_size = 10
+max_age = 28
+max_backups = 4
+compress = true

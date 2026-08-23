@@ -6,12 +6,13 @@ import (
 )
 
 func getAmqpUrl() (string, error) {
-	brokerHost := os.Getenv("RABBIT_HOST")
-	brokerPwd := os.Getenv("RABBIT_PWD")
-	brokerUser := os.Getenv("RABBIT_USER")
-	brokerPort := os.Getenv("RABBIT_PORT")
+	brokerHost := os.Getenv("RABBITMQ_HOST")
+	brokerPwd := os.Getenv("RABBITMQ_DEFAULT_PASS")
+	brokerUser := os.Getenv("RABBITMQ_DEFAULT_USER")
+	brokerPort := os.Getenv("RABBITMQ_PORT")
 
 	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%s/", brokerUser, brokerPwd, brokerHost, brokerPort)
+
 	return amqpURL, nil
 }
 

@@ -21,8 +21,12 @@ type Update struct {
 
 type Message struct {
 	Text     string   `json:"text"`
-	ID       int64     `json:"chat"`
+	Chat     Chat     `json:"chat"`
 	Entities []Entity `json:"entities,omitempty"`
+}
+
+type Chat struct {
+	ID int64 `json:"id"`
 }
 
 type Entity struct {
@@ -49,10 +53,11 @@ type getUpdatesResponse struct {
 
 var telegramAPI = "https://api.telegram.org"
 
-func (s *botService) GetUpdates(ctx context.Context, offset *int64) ([]Update, error) { childCtx, span := s.observer.Tracer.Start(ctx, "GetUpdates")
+func (s *botService) GetUpdates(ctx context.Context, offset *int64) ([]Update, error) {
+	childCtx, span := s.observer.Tracer.Start(ctx, "GetUpdates")
 	defer span.End()
 
-	url := fmt.Sprintf("%s/bot%s/getUpdates?offset=%d&timeout=30", telegramAPI, s.token, offset)
+	url := fmt.Sprintf("%s/bot%s/getUpdates?offset=%d&timeout=30", telegramAPI, s.token, *offset)
 	req, err := http.NewRequestWithContext(childCtx, "GET", url, nil)
 	if err != nil {
 		span.SetStatus(codes.Error, "getUpdates request")

@@ -44,6 +44,8 @@ func (s *server) ReloadSubscriptions(ctx context.Context, _ *emptypb.Empty) (*pb
 }
 
 func main() {
+	syncutils.LoadEnv()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	sigChan := make(chan os.Signal, 1)

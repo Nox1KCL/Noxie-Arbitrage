@@ -112,14 +112,16 @@ func NewBotService(obs *telemetry.Observe, db *gorm.DB, token string, client pb.
 }
 
 func main() {
+	syncutils.LoadEnv()
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	token := os.Getenv("TELEGRAM_BOT_API")
+	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
-		blog.ErrorContext(ctx, "TELEGRAM_BOT_API is not set")
+		blog.ErrorContext(ctx, "TELEGRAM_BOT_TOKEN is not set")
 		os.Exit(1)
 	}
 

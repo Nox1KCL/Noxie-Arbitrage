@@ -32,10 +32,10 @@ func (s *botService) HandleUpdate(ctx context.Context, msg Message) error {
 		span.AddEvent("Starting subscribe process")
 
 		var err error
-		text, err = s.handleSubscribe(childCtx, msg.ID, args)
+		text, err = s.handleSubscribe(childCtx, msg.Chat.ID, args)
 		if err != nil {
 			span.SetStatus(codes.Error, "trying to register subscribe")
-			span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.ID))))
+			span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.Chat.ID))))
 
 			return fmt.Errorf("handling subscription: %w", err)
 		}
@@ -44,10 +44,10 @@ func (s *botService) HandleUpdate(ctx context.Context, msg Message) error {
 		span.AddEvent("Starting display of subscriptions process")
 
 		var err error
-		text, err = s.handleSubscriptions(childCtx, msg.ID)
+		text, err = s.handleSubscriptions(childCtx, msg.Chat.ID)
 		if err != nil {
 			span.SetStatus(codes.Error, "handling display of subscriptions")
-			span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.ID))))
+			span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.Chat.ID))))
 
 			return fmt.Errorf("handling subscriptions: %w", err)
 		}
@@ -56,10 +56,10 @@ func (s *botService) HandleUpdate(ctx context.Context, msg Message) error {
 		span.AddEvent("Starting unsubscribe process")
 
 		var err error
-		text, err = s.handleUnsubscribe(childCtx, msg.ID, args)
+		text, err = s.handleUnsubscribe(childCtx, msg.Chat.ID, args)
 		if err != nil {
 			span.SetStatus(codes.Error, "trying to unsubscribe")
-			span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.ID))))
+			span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.Chat.ID))))
 
 			return fmt.Errorf("handling unsubscribe: %w", err)
 		}
@@ -83,10 +83,10 @@ func (s *botService) HandleUpdate(ctx context.Context, msg Message) error {
 		text = "Sorry! I don't know that command."
 	}
 	
-	err := s.sendMessage(childCtx, msg.ID, text)
+	err := s.sendMessage(childCtx, msg.Chat.ID, text)
 	if err != nil {
 		span.SetStatus(codes.Error, "trying to send message")
-		span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.ID))))
+		span.RecordError(err, trace.WithAttributes(attribute.Int("user.id", int(msg.Chat.ID))))
 
 		return fmt.Errorf("sending message: %w", err)
 	}
