@@ -1,18 +1,18 @@
 [scraper]
-workers_num = 3           # Кількість паралельних воркерів
-user_agent = []           # Список User-Agent для ротації
+workers_num = 3
+user_agent = []
 
 [http]
-max_retries = 5           # Максимальна кількість спроб при помилці
-timeout = 10              # Таймаут запиту в секундах
-interval = 2.0            # Базовий інтервал між запитами
-min_delay = 0.5           # Мінімальна затримка
-max_delay = 2.0           # Максимальна затримка
+max_retries = 5
+timeout = 10
+interval = 2.0
+min_delay = 0.5
+max_delay = 2.0
 
 [logger]
-level = "INFO"            # Рівень логування (DEBUG, INFO, WARNING, ERROR)
-file_path = "logs/app.log" # Шлях до файлу логів
-max_size = "10 MB"        # Максимальний розмір файлу
-retention = "30 days"     # Скільки часу зберігати старі логи
-compression = "zip"       # Формат стиснення старих файлів (наприклад, zip)
-json_format = true        # Чи виводити логи у форматі JSON
+level = "INFO"
+file_path = "logs/parsers/app.log"
+max_size = "10 MB"
+retention = "30 days"
+compression = "zip"
+json_format = true
