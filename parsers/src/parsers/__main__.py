@@ -13,6 +13,7 @@ from parsers.scrapers.binance import BinanceScraper
 from parsers.scrapers.bybit import BybitScraper
 from parsers.utils import get_env, get_random_interval, get_url
 
+
 meter = metrics.get_meter(__name__)
 
 counter = meter.create_counter(
@@ -25,7 +26,11 @@ histogram = meter.create_histogram(
 )
 
 
-async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BasicScraper, cfg: HttpConfig, stop_event: asyncio.Event):
+async def worker(
+    worker_id: int, queue: asyncio.Queue[str], broker: Broker,
+    scraper: BasicScraper, cfg: HttpConfig, stop_event: asyncio.Event
+):
+
     logger.info(f"worker {worker_id} starting")
     exchange = type(scraper).__name__
 
@@ -38,7 +43,12 @@ async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BasicScrape
         start = time.time()
 
         try:
-            await scraper.process_single(symbol, cfg)
+            data = await scraper.process_single(symbol, cfg)
+            if data is None:
+                raise ValueError(f"Failed to process symbol {symbol}")
+
+            logger.info(f"Send message to broker for symbol {symbol}")
+            await broker.load(data)
 
             counter.add(1, {"exchange": exchange, "stage": "worker", "type": "scraper.processed.success"})
 
@@ -52,7 +62,12 @@ async def worker(worker_id: int, queue: asyncio.Queue[str], scraper: BasicScrape
 
             queue.task_done()
 
-async def dispatcher(symbols: list[str], queues: list[asyncio.Queue[str]], interval: float, stop_event: asyncio.Event):
+
+async def dispatcher(
+    symbols: list[str], queues: list[asyncio.Queue[str]],
+    interval: float, stop_event: asyncio.Event
+):
+
     while not stop_event.is_set():
         logger.info("dispatching symbols")
         for s in symbols:
@@ -71,7 +86,7 @@ async def main():
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, stop_event.set)
-        
+
     logger.info("starting initialize broker")
     broker = Broker()
     await broker.connect(get_url())
@@ -85,12 +100,10 @@ async def main():
     async with httpx.AsyncClient() as client:
         binance = BinanceScraper(
             client=client,
-            broker=broker,
             api_url="https://api.binance.com/api/v3/ticker/24hr?symbol="
         )
         bybit = BybitScraper(
             client=client,
-            broker=broker,
             api_url="https://api.bybit.com/v5/market/tickers?category=spot&symbol="
         )
         queues = [binance_queue, bybit_queue]
@@ -101,11 +114,11 @@ async def main():
 
         batch_tasks.append(dispatcher_task)
         for i in range(cfg.scraper.workers_num):
-            task= asyncio.create_task(worker(i, binance_queue, binance, cfg.http, stop_event))
+            task= asyncio.create_task(worker(i, binance_queue, broker, binance, cfg.http, stop_event))
             batch_tasks.append(task)
 
         for i in range(cfg.scraper.workers_num):
-            task = asyncio.create_task(worker(i, bybit_queue, bybit, cfg.http, stop_event))
+            task = asyncio.create_task(worker(i, bybit_queue, broker, bybit, cfg.http, stop_event))
             batch_tasks.append(task)
 
         _ = await stop_event.wait()
@@ -113,6 +126,7 @@ async def main():
         logger.warning("Starting gracefully shutdown..")
         _ = await asyncio.gather(*batch_tasks, return_exceptions=True)
         await broker.tidy()
+
 
 if __name__ == "__main__":
     try:
