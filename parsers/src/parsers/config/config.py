@@ -38,6 +38,12 @@ class Config(BaseModel):
         if not config_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
+        if not config_path.is_file():
+            raise IsADirectoryError(f"Current path leads to directory: {config_path}")
+
+        if config_path.suffix != ".toml":
+            raise ValueError(f"Unsupported file type: {config_path.suffix}")
+        
         with config_path.open("rb") as f:
             data = tomllib.load(f)
 

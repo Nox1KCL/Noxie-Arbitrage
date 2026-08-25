@@ -11,7 +11,7 @@ def setup_logger(cfg: LoggerConfig) -> None:
     _ = logger.add(
             sys.stdout,
             level=cfg.level,
-            colorize=True,
+            colorize=False,
             format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:10}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
     )
 
