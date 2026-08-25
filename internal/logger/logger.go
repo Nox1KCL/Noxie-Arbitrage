@@ -15,10 +15,11 @@ import (
 var llog = slog.With("module", "logger")
 
 type LumberConfig struct {
-	MaxSize    int  `toml:"max_size"`
-	MaxAge     int  `toml:"max_age"`
-	MaxBackups int  `toml:"max_backups"`
-	Compress   bool `toml:"compress"`
+	MaxSize    int    `toml:"max_size"`
+	MaxAge     int    `toml:"max_age"`
+	MaxBackups int    `toml:"max_backups"`
+	Compress   bool   `toml:"compress"`
+	LogsDir    string `toml:"logs_dir"`
 }
 
 type LeveledHandler struct {
@@ -69,7 +70,7 @@ func (h *LeveledHandler) WithGroup(name string) slog.Handler {
 
 func GetHandler(cfg *LumberConfig, levels map[slog.Level]string, otelLoggerName string) (*LeveledHandler, error) {
 	var handlers []handlerEntry
-	
+
 	for level, path := range levels {
 		handler, err := HandlerConveyor(path, level, cfg)
 		if err != nil {
@@ -85,7 +86,7 @@ func GetHandler(cfg *LumberConfig, levels map[slog.Level]string, otelLoggerName 
 
 	logHandler := &LeveledHandler{handlers}
 
-	llog.Info("logger handlers created successfully", 
+	llog.Info("logger handlers created successfully",
 		"file_handlers_count", len(levels),
 		"otel_enabled", otelLoggerName != "",
 	)
