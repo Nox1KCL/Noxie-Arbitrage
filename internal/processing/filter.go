@@ -19,8 +19,8 @@ import (
 var plog = slog.With("service", "processing")
 
 type processingMetrics struct {
-	counter       metric.Int64Counter
-	histogram     metric.Float64Histogram
+	counter   metric.Int64Counter
+	histogram metric.Float64Histogram
 }
 
 func NewProcessingMetrics(meter metric.Meter) (*processingMetrics, error) {
@@ -43,8 +43,8 @@ func NewProcessingMetrics(meter metric.Meter) (*processingMetrics, error) {
 	}
 
 	return &processingMetrics{
-		counter:       counter,
-		histogram:     histogram,
+		counter:   counter,
+		histogram: histogram,
 	}, nil
 }
 
@@ -145,7 +145,7 @@ func (s *processingService) msgsProcessing(ctx context.Context, data *TickerForm
 
 		return nil, nil
 	}
-	matches := s.Match(spread)
+	matches := Match(spread, s.aggregator)
 	if len(matches) == 0 {
 		span.AddEvent("Matches length is zero")
 		s.metrics.counter.Add(ctx, 1, metric.WithAttributes(
@@ -160,34 +160,36 @@ func (s *processingService) msgsProcessing(ctx context.Context, data *TickerForm
 	return msgs, nil
 }
 
-func (s *processingService) Match(spread *Spread) []*MatchResult {
+func Match(spread *Spread, aggregator *Aggregator) []*MatchResult {
 	matches := []*MatchResult{}
-	subs := s.aggregator.GetMaps().SubsBySymbol[spread.Symbol]
+	subs := aggregator.GetMaps().SubsBySymbol[spread.Symbol]
 	for _, sub := range subs {
 		if spread.Spread >= sub.MinSpreadPercent && spread.FirstVolume >= sub.MinVolume && spread.SecondVolume >= sub.MinVolume {
-			if s.CheckAlert(sub, spread) {
+			if CheckAlert(sub, spread, aggregator) {
 				matches = append(matches, &MatchResult{
 					UserID: sub.TelegramChatID,
 					Spread: *spread,
 					Sub:    sub,
 				})
-				s.aggregator.LastAlerts[sub.TelegramChatID][spread.Symbol] = spread.Spread
+				aggregator.LastAlerts[sub.TelegramChatID][spread.Symbol] = spread.Spread
 			}
 		}
 	}
 	return matches
 }
 
-func (s *processingService) CheckAlert(sub models.Subscription, spread *Spread) bool {
-	if s.aggregator.LastAlerts[sub.TelegramChatID] == nil {
-		s.aggregator.LastAlerts[sub.TelegramChatID] = make(map[string]float64)
+func CheckAlert(sub models.Subscription, spread *Spread, aggregator *Aggregator) bool {
+	if aggregator.LastAlerts[sub.TelegramChatID] == nil {
+		aggregator.LastAlerts[sub.TelegramChatID] = make(map[string]float64)
 	}
-	lastAlert, exists := s.aggregator.LastAlerts[sub.TelegramChatID][spread.Symbol]
+	lastAlert, exists := aggregator.LastAlerts[sub.TelegramChatID][spread.Symbol]
 	if !exists {
 		return true
 	}
 	priceChange := (spread.Spread - lastAlert) / lastAlert * 100
-	return priceChange >= sub.MinPriceChangePercent
+
+	const epsilon = 1e-9
+	return (priceChange + epsilon) >= sub.MinPriceChangePercent
 }
 
 func FormMessage(matches []*MatchResult) []*transport.FormedMessage {
