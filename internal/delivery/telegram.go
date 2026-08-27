@@ -1,4 +1,4 @@
-package main
+package delivery
 
 import (
 	"bytes"
@@ -51,7 +51,7 @@ func sendTelegramMessage(ctx context.Context, chatID int64, text string, obs *te
 	if err != nil {
 		span.SetStatus(codes.Error, "could not marshal request")
 		span.RecordError(err)
-		
+
 		return fmt.Errorf("marshaling request: %w", err)
 	}
 
