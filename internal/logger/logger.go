@@ -60,6 +60,7 @@ func (h *LeveledHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 	return &LeveledHandler{handlers: newHandles}
 }
+
 func (h *LeveledHandler) WithGroup(name string) slog.Handler {
 	var newHandles []handlerEntry
 	for _, entry := range h.handlers {
