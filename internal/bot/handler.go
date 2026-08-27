@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func (s *botService) HandleUpdate(ctx context.Context, msg Message) error {
 	}
 	entity := msg.Entities[0]
 
-	childCtx, span := s.observer.Tracer.Start(ctx, "HandleUpdate")
+	childCtx, span := s.Observer.Tracer.Start(ctx, "HandleUpdate")
 	defer span.End()
 
 	cmd, _, _ := strings.Cut(msg.Text[:entity.Length], "@")
@@ -82,7 +82,7 @@ func (s *botService) HandleUpdate(ctx context.Context, msg Message) error {
 		span.AddEvent("Unknown command")
 		text = "Sorry! I don't know that command."
 	}
-	
+
 	err := s.sendMessage(childCtx, msg.Chat.ID, text)
 	if err != nil {
 		span.SetStatus(codes.Error, "trying to send message")
@@ -99,7 +99,7 @@ func (s *botService) handleSubscribe(ctx context.Context, id int64, args []strin
 	if len(args) != 4 {
 		return "You must specify 4 arguments!", nil
 	}
-	childCtx, span := s.observer.Tracer.Start(ctx, "HandlingSubscribe")
+	childCtx, span := s.Observer.Tracer.Start(ctx, "HandlingSubscribe")
 	defer span.End()
 
 	symbol := strings.ToUpper(args[0])
@@ -159,7 +159,7 @@ func (s *botService) handleSubscribe(ctx context.Context, id int64, args []strin
 }
 
 func (s *botService) handleSubscriptions(ctx context.Context, id int64) (string, error) {
-	childCtx, span := s.observer.Tracer.Start(ctx, "HandlingSubscriptions")
+	childCtx, span := s.Observer.Tracer.Start(ctx, "HandlingSubscriptions")
 	defer span.End()
 
 	var subs []models.Subscription
@@ -195,7 +195,7 @@ func (s *botService) handleUnsubscribe(ctx context.Context, id int64, args []str
 		return "You forgot to say Ticker(symbol)!!", nil
 	}
 
-	childCtx, span := s.observer.Tracer.Start(ctx, "HandlingUnsubscribe")
+	childCtx, span := s.Observer.Tracer.Start(ctx, "HandlingUnsubscribe")
 	defer span.End()
 
 	symbol := strings.ToUpper(args[0])

@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"bytes"
@@ -35,7 +35,7 @@ type Entity struct {
 	Length int    `json:"length"`
 }
 
-type sendMessageRequest struct {
+type SendMessageRequest struct {
 	ChatID int64  `json:"chat_id"`
 	Text   string `json:"text"`
 }
@@ -54,7 +54,7 @@ type getUpdatesResponse struct {
 var telegramAPI = "https://api.telegram.org"
 
 func (s *botService) GetUpdates(ctx context.Context, offset *int64) ([]Update, error) {
-	childCtx, span := s.observer.Tracer.Start(ctx, "GetUpdates")
+	childCtx, span := s.Observer.Tracer.Start(ctx, "GetUpdates")
 	defer span.End()
 
 	url := fmt.Sprintf("%s/bot%s/getUpdates?offset=%d&timeout=30", telegramAPI, s.token, *offset)
@@ -101,10 +101,10 @@ func (s *botService) sendMessage(ctx context.Context, id int64, text string) err
 	if s.token == "" {
 		return fmt.Errorf("TELEGRAM_BOT_API is not set")
 	}
-	childCtx, span := s.observer.Tracer.Start(ctx, "SendMessage")
+	childCtx, span := s.Observer.Tracer.Start(ctx, "SendMessage")
 	defer span.End()
 
-	body, err := json.Marshal(sendMessageRequest{ChatID: id, Text: text})
+	body, err := json.Marshal(SendMessageRequest{ChatID: id, Text: text})
 	if err != nil {
 		span.SetStatus(codes.Error, "could not marshal request")
 		span.RecordError(err, trace.WithAttributes(
