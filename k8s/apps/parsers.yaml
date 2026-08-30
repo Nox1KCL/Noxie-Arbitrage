@@ -4,7 +4,7 @@ metadata:
   name: parsers
   labels:
     app: arbitrage-parsers
-    version: "1.0"
+    version: "1.3"
     component: parser
     tier: backend
     part-of: noxie-arbitrage
@@ -19,7 +19,7 @@ spec:
     metadata:
       labels:
         app: arbitrage-parsers
-        version: "1.0"
+        version: "1.3"
         component: parser
         tier: backend
         part-of: noxie-arbitrage

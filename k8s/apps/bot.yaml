@@ -4,7 +4,7 @@ metadata:
   name: bot
   labels:
     app: arbitrage-bot
-    version: "1.0"
+    version: "1.2"
     component: backend
     tier: backend
     part-of: noxie-arbitrage
@@ -18,7 +18,7 @@ spec:
     metadata:
       labels:
         app: arbitrage-bot
-        version: "1.0"
+        version: "1.2"
         component: backend
         tier: backend
         part-of: noxie-arbitrage

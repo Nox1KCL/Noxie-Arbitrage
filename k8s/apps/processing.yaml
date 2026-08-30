@@ -4,7 +4,7 @@ metadata:
   name: processing
   labels:
     app: arbitrage-processing
-    version: "1.0"
+    version: "1.2"
     component: backend
     tier: backend
     part-of: noxie-arbitrage
@@ -19,7 +19,7 @@ spec:
     metadata:
       labels:
         app: arbitrage-processing
-        version: "1.0"
+        version: "1.2"
         component: backend
         tier: backend
         part-of: noxie-arbitrage

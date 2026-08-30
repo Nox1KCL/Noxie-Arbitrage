@@ -19,7 +19,7 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
       - "${RABBITMQ_PORT}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+      - "${RABBITMQ_MGMT_PORT}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
@@ -60,7 +60,7 @@ services:
 
   delivery:
     build:
-      context: ../
+      context: .
       dockerfile: cmd/delivery/Dockerfile
     container_name: delivery
     ports:
@@ -74,7 +74,7 @@ services:
 
   processing:
     build:
-      context: ../
+      context: .
       dockerfile: cmd/processing/Dockerfile
     container_name: processing
     environment:
@@ -104,7 +104,7 @@ services:
 
   bot:
     build:
-      context: ../
+      context: .
       dockerfile: cmd/bot/Dockerfile
     container_name: bot
     environment:
@@ -124,7 +124,7 @@ services:
 
   parsers:
     build:
-      context: ../parsers/
+      context: parsers/
       dockerfile: Dockerfile
     container_name: parsers
     environment:
