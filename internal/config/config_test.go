@@ -45,7 +45,7 @@ func TestGetConfig(t *testing.T) {
 		}
 
 		_, err = config.GetConfig(dirPath)
-		if !strings.Contains(err.Error(), "path leads to dir") {
+		if !strings.Contains(err.Error(), "leads to dir") {
 			t.Errorf("expected path leads to dir, got %s", err.Error())
 		}
 	})

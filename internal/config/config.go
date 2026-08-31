@@ -21,8 +21,8 @@ type Config struct {
 func GetConfig(path string) (*Config, error) {
 	var doc []byte
 	var err error
-	if filepath.IsAbs(filepath.Clean(path)) {
-		return nil, fmt.Errorf("path %s is not absolute", path)
+	if !filepath.IsAbs(filepath.Clean(path)) {
+		return nil, fmt.Errorf("%s is not absolute path", path)
 	}
 
 	info, err := os.Stat(path)
@@ -39,7 +39,7 @@ func GetConfig(path string) (*Config, error) {
 			return nil, fmt.Errorf("reading config file %q: %w", path, err)
 		}
 	} else {
-		return nil, fmt.Errorf("path %s leads to dir", path)
+		return nil, fmt.Errorf("%s leads to dir", path)
 	}
 
 	var cfg Config
