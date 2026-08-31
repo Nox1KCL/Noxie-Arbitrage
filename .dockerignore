@@ -1,13 +1,17 @@
 .env
+k8s/
 internal/config/config.toml
-
-deploy/
+parsers/src/parsers/config/config.toml
 
 .git
+.github
 .gitignore
+
+.vscode/
 .idea/
 .zed/
 *.proto
 
 bin/
 dist/
+logs/
