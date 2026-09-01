@@ -13,6 +13,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 FROM alpine:3.19
 WORKDIR /app
 
-COPY --from=builder /app/ .
+COPY --from=builder /app/nxe-bot .
 
 CMD ["./nxe-bot"]

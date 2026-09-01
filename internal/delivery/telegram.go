@@ -40,7 +40,7 @@ func sendTelegramMessage(ctx context.Context, chatID int64, text string, obs *te
 	ctx, span := obs.Tracer.Start(ctx, "SendingTelegramMessage")
 	defer span.End()
 
-	token := os.Getenv("TELEGRAM_BOT_API")
+	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
 		span.SetStatus(codes.Error, "telegram bot token is missing")
 

@@ -6,11 +6,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/nxe-processing ./cmd/processing
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-w -s" \
+    -o /app/nxe-processing ./cmd/processing
 
 FROM alpine:3.19
 WORKDIR /app
 
-COPY --from=builder /app/ .
+COPY --from=builder /app/nxe-processing .
 
 CMD ["./nxe-processing"]

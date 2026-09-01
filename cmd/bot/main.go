@@ -35,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	conn, err := grpc.NewClient("processing-go:50050", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("processing:50050", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		blog.ErrorContext(ctx, "Could not connect to client", "error", err)
 		os.Exit(1)

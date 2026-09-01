@@ -86,7 +86,7 @@ func main() {
 		}
 	})
 
-	conn, err := grpc.NewClient("delivery-go:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("delivery:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		plog.ErrorContext(ctx, "Could not connect to client", "error", err)
 		os.Exit(1)
