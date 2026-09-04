@@ -44,7 +44,7 @@ func sendTelegramMessage(ctx context.Context, chatID int64, text string, obs *te
 	if token == "" {
 		span.SetStatus(codes.Error, "telegram bot token is missing")
 
-		return fmt.Errorf("TELEGRAM_BOT_API is not set")
+		return fmt.Errorf("TELEGRAM_BOT_TOKEN is not set")
 	}
 
 	body, err := json.Marshal(sendMessageRequest{ChatID: chatID, Text: text})

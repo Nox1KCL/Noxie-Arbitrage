@@ -71,14 +71,14 @@ func TestSendTelegramMessage(t *testing.T) {
 	})
 
 	t.Run("token not set", func(t *testing.T) {
-		t.Setenv("TELEGRAM_BOT_API", "")
+		t.Setenv("TELEGRAM_BOT_TOKEN", "")
 
 		obs, m := dummyTelemetry()
 		err := sendTelegramMessage(context.Background(), 123, "hello", obs, m)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
-		if !strings.Contains(err.Error(), "TELEGRAM_BOT_API") {
+		if !strings.Contains(err.Error(), "TELEGRAM_BOT_TOKEN") {
 			t.Fatalf("expected error to mention env var, got: %v", err)
 		}
 	})
@@ -119,5 +119,5 @@ func setup(t *testing.T, server *httptest.Server) {
 	t.Cleanup(func() {
 		telegramAPI = old
 	})
-	t.Setenv("TELEGRAM_BOT_API", "TESTTOKEN")
+	t.Setenv("TELEGRAM_BOT_TOKEN", "TESTTOKEN")
 }

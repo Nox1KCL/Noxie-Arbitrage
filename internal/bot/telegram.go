@@ -99,7 +99,7 @@ func (s *botService) GetUpdates(ctx context.Context, offset *int64) ([]Update, e
 
 func (s *botService) sendMessage(ctx context.Context, id int64, text string) error {
 	if s.token == "" {
-		return fmt.Errorf("TELEGRAM_BOT_API is not set")
+		return fmt.Errorf("TELEGRAM_BOT_TOKEN is not set")
 	}
 	childCtx, span := s.Observer.Tracer.Start(ctx, "SendMessage")
 	defer span.End()

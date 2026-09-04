@@ -12,7 +12,7 @@ func TestSendMessage(t *testing.T) {
 	t.Run("Without bot token", func(t *testing.T) {
 		service := bot.NewTestBotService(t, "", nil)
 		err := service.SendMessage(context.Background(), 123, "hello")
-		if err == nil || !strings.Contains(err.Error(), "TELEGRAM_BOT_API is not set") {
+		if err == nil || !strings.Contains(err.Error(), "TELEGRAM_BOT_TOKEN is not set") {
 			t.Errorf("expected token not set error, got %v", err)
 		}
 	})
